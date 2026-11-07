@@ -88,7 +88,7 @@ export async function SiteFooter() {
             <span>
               © {year} {SITE.name}. 保留所有热爱。
             </span>
-            <span className="font-mono text-[0.68rem] opacity-70">
+            <span className="font-mono text-[0.68rem]">
               D1 · R2 · Workers · Glassmorphism
             </span>
           </div>

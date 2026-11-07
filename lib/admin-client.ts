@@ -83,6 +83,60 @@ export function uploadFile(
   });
 }
 
+/**
+ * 在浏览器里把图片压成 WebP 并限制长边尺寸，然后再上传。
+ * 1.67MB 的 PNG 照片压缩后通常只有 150-300KB，LCP 和总流量都会明显下降。
+ */
+export async function compressImage(file: File, maxDimension = 2400, quality = 0.82): Promise<File> {
+  if (
+    !file.type.startsWith("image/") ||
+    file.type === "image/gif" ||
+    file.type === "image/svg+xml"
+  ) {
+    return file;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+    const needsCompression = scale < 1 || file.size > 350 * 1024;
+    if (!needsCompression) {
+      bitmap.close();
+      return file;
+    }
+
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) {
+      bitmap.close();
+      return file;
+    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/webp", quality);
+    });
+    if (!blob || blob.size >= file.size) return file;
+
+    const extension =
+      blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.${extension}`, {
+      type: blob.type,
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
 export async function getImageDimensions(file: File) {
   try {
     const bitmap = await createImageBitmap(file);

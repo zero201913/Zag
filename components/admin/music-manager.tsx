@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
-import { apiRequest, getAudioDuration, uploadFile } from "@/lib/admin-client";
+import { apiRequest, compressImage, getAudioDuration, uploadFile } from "@/lib/admin-client";
 import type { Track } from "@/lib/types";
 import { formatDuration, formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -196,13 +196,14 @@ function TrackEditor({
     if (!form.title) update("title", file.name.replace(/\.[^.]+$/, ""));
   }
 
-  function handleCoverChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleCoverChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    const prepared = await compressImage(file, 1400);
     if (coverPreview) URL.revokeObjectURL(coverPreview);
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
+    setCoverFile(prepared);
+    setCoverPreview(URL.createObjectURL(prepared));
   }
 
   async function save() {

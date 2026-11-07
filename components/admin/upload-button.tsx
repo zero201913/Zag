@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
-import { uploadFile, type UploadResult } from "@/lib/admin-client";
+import { compressImage, uploadFile, type UploadResult } from "@/lib/admin-client";
 import { Icon } from "../icons";
 
 export function UploadButton({
@@ -28,7 +28,9 @@ export function UploadButton({
     if (!file) return;
     setProgress(0);
     try {
-      const result = await uploadFile(file, kind, setProgress);
+      const prepared =
+        kind === "audio" ? file : await compressImage(file, kind === "cover" ? 1800 : 2400);
+      const result = await uploadFile(prepared, kind, setProgress);
       onUploaded(result);
     } catch (error) {
       onError?.((error as Error).message);

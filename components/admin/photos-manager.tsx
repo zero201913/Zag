@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
-import { getImageDimensions, apiRequest, uploadFile } from "@/lib/admin-client";
+import { compressImage, getImageDimensions, apiRequest, uploadFile } from "@/lib/admin-client";
 import type { Photo } from "@/lib/types";
 import { formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -37,8 +37,9 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
       const file = files[index];
       setUploading({ name: file.name, percent: 0, index: index + 1, total: files.length });
       try {
-        const dimensions = await getImageDimensions(file);
-        const uploaded = await uploadFile(file, "photo", (percent) =>
+        const prepared = await compressImage(file, 2400);
+        const dimensions = await getImageDimensions(prepared);
+        const uploaded = await uploadFile(prepared, "photo", (percent) =>
           setUploading({ name: file.name, percent, index: index + 1, total: files.length }),
         );
         const data = await apiRequest<{ item: Photo }>("/api/admin/photos", {

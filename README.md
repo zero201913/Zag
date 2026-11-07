@@ -99,6 +99,8 @@ npm run preview
 
 - 图片：JPG / PNG / WebP / GIF / AVIF，最大 25MB
 - 音频：MP3 / WAV / M4A / AAC / OGG / FLAC / Opus，最大 60MB
+- 图片上传前会在浏览器内自动压缩为 WebP（长边 ≤ 2400，质量 0.82），再写入 R2
+- 静态资源使用系统字体，不请求外部字体，减少首屏阻塞
 - 上传键名由服务端生成（`photos/年/月/uuid.ext`、`music/…`、`covers/…`），不信任原始文件名
 
 ---
@@ -199,7 +201,7 @@ npx wrangler secret list
 - **配色 / 玻璃强度 / 动效**：`app/globals.css` 顶部的 CSS 变量（`:root` 与 `.dark`）
 - **首页文案 / 关于页**：后台「设置」
 - **默认内容**：`migrations/0001_init.sql`
-- **字体**：`app/layout.tsx` 里的 Google Fonts 链接（Manrope + Noto Sans SC）
+- **字体**：`app/globals.css` 的 `--font-sans`（默认系统字体，无外部字体请求）
 
 ### 绑定自己的域名
 

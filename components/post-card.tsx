@@ -14,7 +14,12 @@ export function PostCard({ post, index = 0 }: { post: PostSummary; index?: numbe
       <div className="post-cover">
         {post.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={mediaUrl(post.cover_url)} alt={post.title} loading="lazy" />
+          <img
+            src={mediaUrl(post.cover_url)}
+            alt={post.title}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="cover-mono">
             <span className="cover-letter">{post.title.slice(0, 1)}</span>

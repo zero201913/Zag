@@ -134,7 +134,11 @@ export default async function HomePage() {
               <div className="post-cover !rounded-none !border-0">
                 {featured.cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mediaUrl(featured.cover_url)} alt={featured.title} />
+                  <img
+                    src={mediaUrl(featured.cover_url)}
+                    alt={featured.title}
+                    decoding="async"
+                  />
                 ) : (
                   <div className="cover-mono">
                     <span className="cover-letter">{featured.title.slice(0, 1)}</span>
@@ -308,6 +312,9 @@ export default async function HomePage() {
                   src={mediaUrl(photo.r2_key)}
                   alt={photo.title || "照片"}
                   loading="lazy"
+                  decoding="async"
+                  width={photo.width ?? undefined}
+                  height={photo.height ?? undefined}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </Link>

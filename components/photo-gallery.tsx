@@ -51,7 +51,10 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
             <img
               src={mediaUrl(photo.r2_key)}
               alt={photo.title || "照片"}
-              loading={index < 6 ? "eager" : "lazy"}
+              loading={index < 2 ? "eager" : "lazy"}
+              decoding="async"
+              width={photo.width ?? undefined}
+              height={photo.height ?? undefined}
             />
             {(photo.title || photo.description) && (
               <figcaption className="photo-caption">
@@ -87,7 +90,13 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
 
           <div className="max-w-full" onClick={(event) => event.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={mediaUrl(current.r2_key)} alt={current.title || "照片"} />
+            <img
+              src={mediaUrl(current.r2_key)}
+              alt={current.title || "照片"}
+              decoding="async"
+              width={current.width ?? undefined}
+              height={current.height ?? undefined}
+            />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-white/80">
               <div>
                 {current.title && <p className="font-semibold text-white">{current.title}</p>}

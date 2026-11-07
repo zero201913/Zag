@@ -4,10 +4,12 @@
    Design tokens
    ============================================================ */
 :root {
-  --font-sans: "Manrope", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
-    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, "Cascadia Code",
-    Consolas, monospace;
+  /* 系统字体：零网络请求、首屏直接绘制，避免外部字体 CSS 阻塞和字体交换导致的 LCP 延迟 */
+  --font-sans: "Segoe UI Variable Display", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Code",
+    Consolas, "Liberation Mono", monospace;
 
   --bg: #f2edff;
   --bg-deep: #ffeaf2;
@@ -164,9 +166,27 @@ body {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
+  /* 渐变本身已经足够柔和，减少大面积 blur 的绘制开销 */
+  filter: blur(48px);
   opacity: var(--blob-opacity);
   will-change: transform;
+}
+
+@media (max-width: 768px) {
+  .glass {
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+  }
+
+  .glass-strong {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* 手机上冻结持续移动的极光，减少绘制与电量消耗；桌面端保留动效 */
+  .blob {
+    animation: none;
+  }
 }
 
 .blob-1 {

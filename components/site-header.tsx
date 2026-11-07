@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NAV_ITEMS, SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
-import { SearchDialog } from "./search-dialog";
 import { ThemeToggle } from "./theme-toggle";
+
+// 搜索面板只在打开时才加载，减小首屏 JS
+const SearchDialog = dynamic(
+  () => import("./search-dialog").then((module) => module.SearchDialog),
+  { ssr: false },
+);
 
 export function SiteHeader() {
   const pathname = usePathname();
