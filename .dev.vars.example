@@ -1,0 +1,4 @@
+# 复制为 .dev.vars 后使用；.dev.vars 必须被 gitignore
+# 后台登录指令代码。生产环境请用：
+#   npx wrangler secret put ADMIN_ACCESS_CODE
+ADMIN_ACCESS_CODE=replace-with-your-own-secret

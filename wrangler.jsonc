@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zag-blog",
+  "compatibility_date": "2026-11-07",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "main": ".open-next/worker.js",
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+    // OpenNext 在启用 run_worker_first 时要求关闭 HTML 自动处理，
+    // 避免静态资源绕过 Worker 里的鉴权逻辑。
+    "html_handling": "none",
+    "not_found_handling": "404-page",
+    // 后台与 API 必须先经过 Worker 鉴权，避免被同名静态资源绕过
+    "run_worker_first": ["/admin", "/admin/*", "/api/*"]
+  },
+  // 自定义域名（workers.dev 在部分网络会被屏蔽）
+"routes": [
+  {
+    "pattern": "zag.zeroa.space",
+    "custom_domain": true
+  }
+],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zag-blog-db",
+      "database_id": "59aa0964-d005-4702-a946-e114851fe789",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "zag-blog-r2"
+    }
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "zag-blog"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
