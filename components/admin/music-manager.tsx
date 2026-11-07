@@ -5,6 +5,7 @@ import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
 import { apiRequest, compressImage, getAudioDuration, uploadFile } from "@/lib/admin-client";
+import { extractAudioTags, extractAudioTagsFromUrl } from "@/lib/audio-metadata";
 import type { Track } from "@/lib/types";
 import { formatDuration, formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -31,6 +32,9 @@ export function MusicManager({ initial }: { initial: Track[] }) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Track | null>(initial[0] ?? blankTrack());
   const { toast, show } = useToast();
+  const albums = Array.from(
+    new Set(items.map((item) => item.album.trim()).filter(Boolean)),
+  );
 
   function handleSaved(item: Track) {
     setItems((list) => {
@@ -60,7 +64,7 @@ export function MusicManager({ initial }: { initial: Track[] }) {
     <div className="pb-10">
       <AdminPageHeader
         title="音乐"
-        description="音频上传到 R2，前台播放器支持拖动进度。"
+        description="音频上传到 R2，自动读取 MP3 内嵌封面与 ID3 信息，前台支持全局播放。"
         action={
           <button type="button" className="btn btn-primary" onClick={() => setEditing(blankTrack())}>
             <Icon name="plus" size={15} />
@@ -132,6 +136,7 @@ export function MusicManager({ initial }: { initial: Track[] }) {
             <TrackEditor
               key={editing.id || "new"}
               track={editing}
+              albums={albums}
               onSaved={handleSaved}
               onCancel={() => setEditing(null)}
               onError={(message) => show(message, "error")}
@@ -156,11 +161,13 @@ export function MusicManager({ initial }: { initial: Track[] }) {
 
 function TrackEditor({
   track,
+  albums,
   onSaved,
   onCancel,
   onError,
 }: {
   track: Track;
+  albums: string[];
   onSaved: (item: Track) => void;
   onCancel: () => void;
   onError: (message: string) => void;
@@ -169,9 +176,11 @@ function TrackEditor({
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverSource, setCoverSource] = useState("");
   const [duration, setDuration] = useState<number | null>(track.duration);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   const audioInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -191,9 +200,25 @@ function TrackEditor({
     event.target.value = "";
     if (!file) return;
     setAudioFile(file);
-    const detected = await getAudioDuration(file);
+    const [detected, tags] = await Promise.all([
+      getAudioDuration(file),
+      extractAudioTags(file),
+    ]);
     if (detected) setDuration(detected);
-    if (!form.title) update("title", file.name.replace(/\.[^.]+$/, ""));
+    setForm((current) => ({
+      ...current,
+      title: current.title || tags.title || file.name.replace(/\.[^.]+$/, ""),
+      artist: current.artist || tags.artist || "",
+      album: current.album || tags.album || "",
+    }));
+
+    if (tags.picture && !form.cover_key && !coverFile) {
+      const prepared = await compressImage(tags.picture, 1400);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverFile(prepared);
+      setCoverPreview(URL.createObjectURL(prepared));
+      setCoverSource("已自动读取 MP3 内嵌封面");
+    }
   }
 
   async function handleCoverChange(event: ChangeEvent<HTMLInputElement>) {
@@ -204,6 +229,28 @@ function TrackEditor({
     if (coverPreview) URL.revokeObjectURL(coverPreview);
     setCoverFile(prepared);
     setCoverPreview(URL.createObjectURL(prepared));
+    setCoverSource("已手动选择封面");
+  }
+
+  async function extractExistingCover() {
+    if (!form.r2_key || extracting) return;
+    setExtracting(true);
+    try {
+      const tags = await extractAudioTagsFromUrl(mediaUrl(form.r2_key));
+      if (!tags.picture) {
+        onError("这个音频文件没有内嵌封面，请手动选择一张图片。");
+        return;
+      }
+      const prepared = await compressImage(tags.picture, 1400);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverFile(prepared);
+      setCoverPreview(URL.createObjectURL(prepared));
+      setCoverSource("已从音频文件读取内嵌封面");
+    } catch {
+      onError("读取音频封面失败，请手动选择一张图片。");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function save() {
@@ -325,12 +372,13 @@ function TrackEditor({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <AdminField label="专辑">
+          <AdminField label="专辑 / 音乐包" hint="相同专辑会归到同一组">
             <input
               className="field"
               value={form.album}
               onChange={(event) => update("album", event.target.value)}
               placeholder="专辑名（可选）"
+              list="music-albums"
             />
           </AdminField>
           <AdminField label="排序" hint="数字越小越靠前">
@@ -372,8 +420,8 @@ function TrackEditor({
           </div>
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--glass-soft)] p-4">
-            <p className="label">封面（可选）</p>
-            <div className="flex items-center gap-3">
+            <p className="label">封面（可选，MP3 可自动读取）</p>
+            <div className="flex flex-wrap items-center gap-3">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--accent)]">
                 {coverSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -393,13 +441,33 @@ function TrackEditor({
                 <Icon name="upload" size={13} />
                 {form.cover_key || coverFile ? "替换封面" : "选择封面"}
               </button>
+              {form.r2_key && (
+                <button
+                  type="button"
+                  className="btn !px-3 !py-1.5 !text-xs"
+                  onClick={() => void extractExistingCover()}
+                  disabled={extracting}
+                >
+                  <Icon name={extracting ? "loader" : "image"} size={13} className={extracting ? "animate-spin" : ""} />
+                  {extracting ? "读取中…" : "从音频取封面"}
+                </button>
+              )}
             </div>
+            {coverSource && (
+              <p className="mt-2 text-[0.66rem] text-[var(--accent)]">{coverSource}</p>
+            )}
           </div>
         </div>
 
         <p className="rounded-xl border border-[var(--border)] bg-[var(--glass-soft)] px-3 py-2 text-[0.68rem] text-muted">
-          支持 MP3 / WAV / M4A / OGG / FLAC 等格式，最大 60MB。文件会保存在 R2 的 music/ 目录。
+          支持 MP3 / WAV / M4A / OGG / FLAC 等格式，最大 60MB。选择音频后会自动读取 ID3
+          标题 / 艺术家 / 专辑；带内嵌封面的 MP3 无需再手动上传封面。
         </p>
+        <datalist id="music-albums">
+          {albums.map((album) => (
+            <option key={album} value={album} />
+          ))}
+        </datalist>
       </div>
     </div>
   );

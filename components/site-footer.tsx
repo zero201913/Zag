@@ -14,7 +14,7 @@ export async function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative z-10 px-5 pb-8 pt-16">
+    <footer className="site-footer relative z-10 px-5 pb-8 pt-16">
       <div className="mx-auto max-w-[1180px]">
         <div className="glass rounded-[30px] p-7 sm:p-9">
           <div className="grid gap-9 md:grid-cols-[1.4fr_1fr_1fr]">

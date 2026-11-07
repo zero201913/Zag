@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Ambient } from "@/components/ambient";
+import { MusicProvider } from "@/components/music-provider";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
 import { ThemeScript } from "@/components/theme-script";
+import { VinylPlayer } from "@/components/vinyl-player";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -44,7 +46,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <Ambient />
-        <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>
+        <MusicProvider>
+          <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>
+          <VinylPlayer />
+        </MusicProvider>
       </body>
     </html>
   );

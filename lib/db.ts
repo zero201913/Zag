@@ -186,11 +186,11 @@ export async function searchAll(rawQuery: string): Promise<SearchHit[]> {
       .bind(like, like, like)
       .all<{ id: string; title: string; description: string; category: string }>(),
     db
-      .prepare(`SELECT id, title, description FROM photos
-        WHERE title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
+      .prepare(`SELECT id, title, description, album FROM photos
+        WHERE title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR album LIKE ? ESCAPE '\\'
         ORDER BY created_at DESC LIMIT 4`)
-      .bind(like, like)
-      .all<{ id: string; title: string; description: string }>(),
+      .bind(like, like, like)
+      .all<{ id: string; title: string; description: string; album: string }>(),
     db
       .prepare(`SELECT id, title, artist, album FROM tracks
         WHERE title LIKE ? ESCAPE '\\' OR artist LIKE ? ESCAPE '\\' OR album LIKE ? ESCAPE '\\'
@@ -232,7 +232,7 @@ export async function searchAll(rawQuery: string): Promise<SearchHit[]> {
       type: "photo",
       id: p.id,
       title: p.title || "未命名照片",
-      subtitle: p.description,
+      subtitle: p.description || p.album,
       href: `/photos#photo-${p.id}`,
     });
   }

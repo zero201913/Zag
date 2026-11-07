@@ -5,6 +5,8 @@
 - 前台：首页 / 文章 / 收藏夹 / 项目 / 照片 / 音乐 / 关于
 - 视觉：玻璃朦胧风格、动态极光背景、深浅色切换、移动端适配
 - 搜索：`Ctrl / ⌘ + K` 或 `/` 打开快捷搜索，按标题检索全部内容
+- 照片：按相册分类；点开后沉浸查看，顶部/底部栏淡出，支持滚轮缩放、拖动平移、右上角退出
+- 音乐：按专辑分组为不同音乐包；全局播放器跨页面不中断，右下角黑胶可播放/暂停；自动读取 MP3 内嵌封面与 ID3 标签
 - 后台：`/admin`，专属指令代码登录；文章、项目、收藏、照片、音乐、站点文案与登录指令全部可管理
 - 存储：内容在 D1，图片 / 音频在 R2，媒体通过带 Range 支持的接口输出
 
@@ -69,7 +71,7 @@ npx wrangler secret put ADMIN_ACCESS_CODE
 npm run deploy
 ```
 
-> 当前仓库的 `0001_init.sql` 已经应用到本地与远程 D1；重复执行会跳过已完成的迁移。
+> 当前仓库的 `0001_init.sql`、`0002_photo_albums.sql` 已经应用到本地与远程 D1；重复执行会跳过已完成的迁移。
 > 部署完成后，建议先在后台「设置 → 安全」把初始指令换成自己的。
 
 `npm run deploy` 会执行 `opennextjs-cloudflare build && opennextjs-cloudflare deploy`。
@@ -91,8 +93,8 @@ npm run preview
 | `/admin/posts` | 新建 / 编辑 / 删除文章；Markdown 编辑与预览、封面上传、标签、草稿、精选 |
 | `/admin/projects` | 项目名称、链接、源码、图标、标签、排序 |
 | `/admin/bookmarks` | 收藏标题、链接、分类、描述 |
-| `/admin/photos` | 多选上传到 R2、自动读取尺寸、编辑标题 / 说明 / 拍摄日期、删除（同时删 R2 文件） |
-| `/admin/music` | 上传音频与封面、自动读取时长、编辑元信息、排序、删除（同时删 R2 文件） |
+| `/admin/photos` | 多选上传到 R2、选择相册、自动读取尺寸、编辑标题 / 说明 / 相册 / 拍摄日期、删除（同时删 R2 文件） |
+| `/admin/music` | 上传音频与封面、自动读取时长 / 内嵌封面 / ID3 标签、从音频补封面、编辑专辑与排序、删除（同时删 R2 文件） |
 | `/admin/settings` | 首页主副标题、关于页 Markdown、页脚、GitHub / 邮箱、修改进入指令 |
 
 上传限制：
@@ -100,6 +102,7 @@ npm run preview
 - 图片：JPG / PNG / WebP / GIF / AVIF，最大 25MB
 - 音频：MP3 / WAV / M4A / AAC / OGG / FLAC / Opus，最大 60MB
 - 图片上传前会在浏览器内自动压缩为 WebP（长边 ≤ 2400，质量 0.82），再写入 R2
+- MP3 会自动解析 ID3v2 的标题 / 艺术家 / 专辑与 APIC 内嵌封面；没有内嵌封面时再手动上传
 - 静态资源使用系统字体，不请求外部字体，减少首屏阻塞
 - 上传键名由服务端生成（`photos/年/月/uuid.ext`、`music/…`、`covers/…`），不信任原始文件名
 
@@ -118,6 +121,7 @@ app/
 │  └─ (panel)/               受保护后台（layout 里校验会话）
 └─ api/
    ├─ search/                标题快捷搜索
+   ├─ tracks/                全局播放器曲目列表
    ├─ media/[...key]/        R2 流式输出（缓存 + Range）
    └─ admin/
       ├─ login/ logout/      会话
@@ -128,16 +132,21 @@ app/
 components/
 ├─ site-header / footer      公共导航
 ├─ search-dialog             全局快捷搜索
-├─ photo-gallery             照片瀑布流 + 灯箱
-├─ music-player              播放列表 / 进度 / 音量
+├─ photo-gallery             照片瀑布流 + 沉浸灯箱（缩放 / 拖动）
+├─ music-provider            全局音频状态与跨页面播放
+├─ music-library             专辑分组音乐库 / 进度 / 音量
+├─ vinyl-player              右下角黑胶播放器
 └─ admin/                    后台界面与内容管理器
 lib/
 ├─ db.ts                     D1 查询
 ├─ auth.ts                   会话、HMAC 校验、登录限流
 ├─ markdown.ts               安全 Markdown 渲染
+├─ audio-metadata.ts         ID3v2 标签与内嵌封面解析
 ├─ admin-api.ts              后台鉴权与通用校验
-└─ admin-client.ts           前端请求 / 上传（带进度）
-migrations/0001_init.sql     数据库结构与初始内容
+└─ admin-client.ts           前端请求 / 上传（带进度、图片压缩）
+migrations/
+├─ 0001_init.sql             数据库结构与初始内容
+└─ 0002_photo_albums.sql     照片相册字段
 ```
 
 ### 数据库表
@@ -145,7 +154,8 @@ migrations/0001_init.sql     数据库结构与初始内容
 `posts`、`projects`、`bookmarks`、`photos`、`tracks`、`settings`、`admin_sessions`、`login_attempts`。
 
 - 文章正文存 `posts.content`（Markdown）
-- 图片 / 音频文件存 R2，表里只存 `r2_key`
+- 照片通过 `photos.album` 分类；音乐通过 `tracks.album` 分成音乐包
+- 图片 / 音频文件存 R2，表里只存 `r2_key` / `cover_key`
 - 后台会话存 D1 的 `admin_sessions`，Cookie 里只有随机 token（数据库存 SHA-256）
 - 登录失败按 IP 限流：15 分钟最多 10 次
 
@@ -200,7 +210,7 @@ npx wrangler secret list
 - **导航项**：`lib/site.ts` 的 `NAV_ITEMS`
 - **配色 / 玻璃强度 / 动效**：`app/globals.css` 顶部的 CSS 变量（`:root` 与 `.dark`）
 - **首页文案 / 关于页**：后台「设置」
-- **默认内容**：`migrations/0001_init.sql`
+- **默认内容 / 数据结构**：`migrations/0001_init.sql`、`migrations/0002_photo_albums.sql`
 - **字体**：`app/globals.css` 的 `--font-sans`（默认系统字体，无外部字体请求）
 
 ### 绑定自己的域名

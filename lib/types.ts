@@ -41,6 +41,7 @@ export interface Photo {
   id: string;
   title: string;
   description: string;
+  album: string;
   r2_key: string;
   width: number | null;
   height: number | null;

@@ -25,8 +25,10 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Photo | null>(null);
   const [uploading, setUploading] = useState<Uploading | null>(null);
+  const [uploadAlbum, setUploadAlbum] = useState("未分类");
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
+  const albums = Array.from(new Set(items.map((item) => item.album || "未分类")));
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -47,6 +49,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
           body: JSON.stringify({
             title: file.name.replace(/\.[^.]+$/, ""),
             description: "",
+            album: uploadAlbum.trim() || "未分类",
             r2_key: uploaded.key,
             width: dimensions.width,
             height: dimensions.height,
@@ -81,7 +84,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
         title="照片"
         description="上传到 R2，元信息存进 D1。支持一次选择多张。"
         action={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <input
               ref={inputRef}
               type="file"
@@ -90,6 +93,19 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
               className="hidden"
               onChange={handleFiles}
             />
+            <input
+              className="field !w-32 !py-2 !text-xs"
+              value={uploadAlbum}
+              onChange={(event) => setUploadAlbum(event.target.value)}
+              placeholder="相册名称"
+              list="photo-albums"
+              aria-label="上传到相册"
+            />
+            <datalist id="photo-albums">
+              {albums.map((album) => (
+                <option key={album} value={album} />
+              ))}
+            </datalist>
             <button
               type="button"
               className="btn btn-primary"
@@ -99,7 +115,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
               <Icon name={uploading ? "loader" : "upload"} size={15} className={uploading ? "animate-spin" : ""} />
               {uploading ? "上传中…" : "上传照片"}
             </button>
-          </>
+          </div>
         }
       />
 
@@ -233,6 +249,7 @@ function PhotoEditor({
         body: JSON.stringify({
           title: form.title,
           description: form.description,
+          album: form.album,
           taken_at: form.taken_at,
           r2_key: form.r2_key,
         }),
@@ -283,6 +300,16 @@ function PhotoEditor({
             value={form.title}
             onChange={(event) => update("title", event.target.value)}
             placeholder="给照片起个名字"
+          />
+        </AdminField>
+
+        <AdminField label="相册" hint="相同相册名称会归到同一组">
+          <input
+            className="field"
+            value={form.album}
+            onChange={(event) => update("album", event.target.value)}
+            placeholder="未分类"
+            list="photo-albums"
           />
         </AdminField>
 

@@ -157,13 +157,14 @@ export async function POST(
 
     await db
       .prepare(
-        `INSERT INTO photos (id, title, description, r2_key, width, height, taken_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO photos (id, title, description, album, r2_key, width, height, taken_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
         text(body.title, 160),
         text(body.description, 600),
+        text(body.album, 80).trim() || "未分类",
         r2Key,
         numberOrNull(body.width),
         numberOrNull(body.height),

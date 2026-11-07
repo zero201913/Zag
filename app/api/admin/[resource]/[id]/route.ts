@@ -51,6 +51,7 @@ interface PhotoRow {
   id: string;
   title: string;
   description: string;
+  album: string;
   r2_key: string;
   width: number | null;
   height: number | null;
@@ -179,11 +180,12 @@ export async function PUT(
     const r2Key = requiredText(body.r2_key, 500) || row.r2_key;
     await db
       .prepare(
-        `UPDATE photos SET title = ?, description = ?, r2_key = ?, width = ?, height = ?, taken_at = ? WHERE id = ?`,
+        `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, width = ?, height = ?, taken_at = ? WHERE id = ?`,
       )
       .bind(
         text(body.title, 160, row.title),
         text(body.description, 600, row.description),
+        text(body.album, 80, row.album).trim() || "未分类",
         r2Key,
         body.width === undefined ? row.width : numberOrNull(body.width),
         body.height === undefined ? row.height : numberOrNull(body.height),
