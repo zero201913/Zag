@@ -21,6 +21,12 @@ const KINDS = {
     mime: /^image\/(jpeg|png|webp|gif|avif)$/i,
     extensions: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
   },
+  background: {
+    prefix: "backgrounds",
+    maxBytes: 25 * 1024 * 1024,
+    mime: /^image\/(jpeg|png|webp|gif|avif)$/i,
+    extensions: ["jpg", "jpeg", "png", "webp", "gif", "avif"],
+  },
   audio: {
     prefix: "music",
     maxBytes: 60 * 1024 * 1024,

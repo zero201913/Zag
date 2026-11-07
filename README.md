@@ -4,6 +4,7 @@
 
 - 前台：首页 / 文章 / 收藏夹 / 项目 / 照片 / 音乐 / 关于
 - 视觉：玻璃朦胧风格、动态极光背景、深浅色切换、移动端适配
+- 外观：可切换 R2 背景图、调整背景朦胧度、切换/自定义配色（本地实验功能）
 - 搜索：`Ctrl / ⌘ + K` 或 `/` 打开快捷搜索，按标题检索全部内容
 - 照片：按相册分类；点开后沉浸查看，顶部/底部栏淡出，支持滚轮缩放、拖动平移、右上角退出
 - 音乐：按专辑分组为不同音乐包；全局播放器跨页面不中断，右下角黑胶可播放/暂停；自动读取 MP3 内嵌封面与 ID3 标签
@@ -94,6 +95,7 @@ npm run preview
 | `/admin/projects` | 项目名称、链接、源码、图标、标签、排序 |
 | `/admin/bookmarks` | 收藏标题、链接、分类、描述 |
 | `/admin/photos` | 多选上传到 R2、选择相册、自动读取尺寸、编辑标题 / 说明 / 相册 / 拍摄日期、删除（同时删 R2 文件） |
+| `/admin/backgrounds` | 上传背景图到 R2 `backgrounds/`、重命名、复制 URL、删除（同时删 R2 文件） |
 | `/admin/music` | 上传音频与封面、自动读取时长 / 内嵌封面 / ID3 标签、从音频补封面、编辑专辑与排序、删除（同时删 R2 文件） |
 | `/admin/settings` | 首页主副标题、关于页 Markdown、页脚、GitHub / 邮箱、修改进入指令 |
 
@@ -146,16 +148,17 @@ lib/
 └─ admin-client.ts           前端请求 / 上传（带进度、图片压缩）
 migrations/
 ├─ 0001_init.sql             数据库结构与初始内容
-└─ 0002_photo_albums.sql     照片相册字段
+├─ 0002_photo_albums.sql     照片相册字段
+└─ 0003_backgrounds.sql      R2 背景图索引
 ```
 
 ### 数据库表
 
-`posts`、`projects`、`bookmarks`、`photos`、`tracks`、`settings`、`admin_sessions`、`login_attempts`。
+`posts`、`projects`、`bookmarks`、`photos`、`tracks`、`backgrounds`、`settings`、`admin_sessions`、`login_attempts`。
 
 - 文章正文存 `posts.content`（Markdown）
 - 照片通过 `photos.album` 分类；音乐通过 `tracks.album` 分成音乐包
-- 图片 / 音频文件存 R2，表里只存 `r2_key` / `cover_key`
+- 图片 / 音频 / 背景文件存 R2，表里只存 `r2_key` / `cover_key`；背景图独立放在 `backgrounds/`
 - 后台会话存 D1 的 `admin_sessions`，Cookie 里只有随机 token（数据库存 SHA-256）
 - 登录失败按 IP 限流：15 分钟最多 10 次
 

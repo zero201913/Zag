@@ -128,6 +128,7 @@ export default async function AdminDashboardPage() {
             <div className="mt-3 grid gap-2">
               <QuickLink href="/admin/posts" icon="pencil" label="写一篇文章" />
               <QuickLink href="/admin/photos" icon="image" label="上传照片" />
+              <QuickLink href="/admin/backgrounds" icon="palette" label="管理背景" />
               <QuickLink href="/admin/music" icon="music" label="上传音乐" />
               <QuickLink href="/admin/settings" icon="settings" label="修改站点文案" />
             </div>

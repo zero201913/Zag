@@ -22,6 +22,8 @@ export type IconName =
   | "upload"
   | "logout"
   | "settings"
+  | "palette"
+  | "refresh"
   | "grid"
   | "sparkles"
   | "github"
@@ -162,6 +164,23 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.9 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.9 1.9-1.9h1.7A4.4 4.4 0 0 0 21 10.4C21 6.3 17 3 12 3z" />
+      <circle cx="7.5" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="6.8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="17" cy="10.2" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M4 4v6h6" />
+      <path d="M20 20v-6h-6" />
+      <path d="M20 9A8 8 0 0 0 6 5.5L4 8" />
+      <path d="M4 15a8 8 0 0 0 14 3.5l2-2.5" />
     </>
   ),
   grid: (

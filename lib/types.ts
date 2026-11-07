@@ -49,6 +49,20 @@ export interface Photo {
   created_at: number;
 }
 
+export interface Background {
+  id: string;
+  name: string;
+  r2_key: string;
+  sort_order: number;
+  created_at: number;
+}
+
+export interface BackgroundOption {
+  id: string;
+  name: string;
+  url: string;
+}
+
 export interface Track {
   id: string;
   title: string;

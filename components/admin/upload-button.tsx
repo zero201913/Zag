@@ -12,7 +12,7 @@ export function UploadButton({
   onError,
   className = "btn",
 }: {
-  kind: "photo" | "cover" | "audio" | "avatar";
+  kind: "photo" | "cover" | "audio" | "avatar" | "background";
   label: string;
   accept?: string;
   onUploaded: (result: UploadResult) => void;

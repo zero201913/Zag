@@ -42,7 +42,7 @@ export interface UploadResult {
 
 export function uploadFile(
   file: File,
-  kind: "photo" | "cover" | "audio" | "avatar",
+  kind: "photo" | "cover" | "audio" | "avatar" | "background",
   onProgress?: (percent: number) => void,
 ): Promise<UploadResult> {
   return new Promise((resolve, reject) => {

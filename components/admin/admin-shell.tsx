@@ -11,6 +11,7 @@ const NAV: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/admin/projects", label: "项目", icon: "folder" },
   { href: "/admin/bookmarks", label: "收藏夹", icon: "bookmark" },
   { href: "/admin/photos", label: "照片", icon: "image" },
+  { href: "/admin/backgrounds", label: "背景", icon: "palette" },
   { href: "/admin/music", label: "音乐", icon: "music" },
   { href: "/admin/settings", label: "设置", icon: "settings" },
 ];

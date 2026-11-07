@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NAV_ITEMS, SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { AppearanceTrigger } from "./appearance-trigger";
 import { Icon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -99,6 +100,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5 min-[900px]:ml-0">
+            <AppearanceTrigger />
             <button
               type="button"
               className="icon-btn"

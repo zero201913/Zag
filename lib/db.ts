@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { DEFAULT_SETTINGS } from "./site";
 import type {
+  Background,
   BlogStats,
   Bookmark,
   Photo,
@@ -91,6 +92,14 @@ export async function listBookmarks(): Promise<Bookmark[]> {
   const { results } = await db
     .prepare("SELECT * FROM bookmarks ORDER BY category ASC, created_at DESC")
     .all<Bookmark>();
+  return results ?? [];
+}
+
+export async function listBackgrounds(): Promise<Background[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT * FROM backgrounds ORDER BY sort_order ASC, created_at DESC")
+    .all<Background>();
   return results ?? [];
 }
 

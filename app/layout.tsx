@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Ambient } from "@/components/ambient";
+import { AppearanceProvider } from "@/components/appearance-provider";
+import { AppearanceScript } from "@/components/appearance-script";
 import { MusicProvider } from "@/components/music-provider";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
@@ -43,12 +45,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
         <ThemeScript />
+        <AppearanceScript />
       </head>
       <body>
         <Ambient />
         <MusicProvider>
-          <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>
-          <VinylPlayer />
+          <AppearanceProvider>
+            <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>
+            <VinylPlayer />
+          </AppearanceProvider>
         </MusicProvider>
       </body>
     </html>
