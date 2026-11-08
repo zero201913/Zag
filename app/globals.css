@@ -2141,6 +2141,58 @@ body.lightbox-open .vinyl-dock {
 }
 
 /* ============================================================
+   首页 Playlist 动态光波
+   ============================================================ */
+.playlist-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 52px;
+  margin: 0.9rem 0;
+  opacity: 0.38;
+  transition: opacity 0.35s ease;
+}
+
+.playlist-wave.is-playing {
+  opacity: 0.92;
+}
+
+.playlist-wave span {
+  flex: 1 1 0;
+  max-width: 5px;
+  height: 100%;
+  transform: scaleY(var(--wave-base, 0.4));
+  transform-origin: bottom;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-3), var(--accent) 55%, var(--accent-2));
+  will-change: transform;
+  animation: playlist-wave-idle 4.8s ease-in-out infinite alternate;
+  animation-delay: var(--wave-delay, 0s);
+}
+
+.playlist-wave.is-playing span {
+  animation: playlist-wave 1.15s ease-in-out infinite alternate;
+}
+
+@keyframes playlist-wave-idle {
+  from {
+    transform: scaleY(calc(var(--wave-base, 0.4) * 0.34));
+  }
+  to {
+    transform: scaleY(calc(var(--wave-base, 0.4) * 0.58));
+  }
+}
+
+@keyframes playlist-wave {
+  from {
+    transform: scaleY(calc(var(--wave-base, 0.4) * 0.28));
+  }
+  to {
+    transform: scaleY(var(--wave-base, 0.4));
+  }
+}
+
+/* ============================================================
    Utilities & motion
    ============================================================ */
 .reveal {

@@ -45,73 +45,79 @@ export default async function ProjectsPage() {
           {projects.map((project, index) => {
             const tags = parseTags(project.tags);
             const external = /^https?:\/\//i.test(project.url);
-            const inner = (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                    <Icon name={iconOf(project.icon)} size={22} />
-                  </span>
-                  <span className="chip">{formatDate(project.created_at)}</span>
-                </div>
-                <div className="mt-5">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-[-0.02em]">{project.name}</h2>
-                    {external ? (
-                      <Icon name="arrow-up-right" size={15} className="text-muted" />
-                    ) : (
-                      <Icon name="arrow-right" size={15} className="text-muted" />
+            return (
+              <div
+                key={project.id}
+                id={`project-${project.id}`}
+                className="glass card card-hover reveal relative flex flex-col"
+                style={{ ["--i" as string]: index }}
+              >
+                {/* 主链接铺满整张卡片；源码链接单独叠在上层，避免嵌套 <a> */}
+                {external ? (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0 z-0 rounded-[inherit]"
+                    aria-label={`访问 ${project.name}`}
+                  />
+                ) : (
+                  <Link
+                    href={project.url || "/"}
+                    className="absolute inset-0 z-0 rounded-[inherit]"
+                    aria-label={`查看 ${project.name}`}
+                  />
+                )}
+
+                <div className="pointer-events-none relative z-10 flex flex-1 flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                      <Icon name={iconOf(project.icon)} size={22} />
+                    </span>
+                    <span className="chip">{formatDate(project.created_at)}</span>
+                  </div>
+                  <div className="mt-5">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold tracking-[-0.02em]">{project.name}</h2>
+                      {external ? (
+                        <Icon name="arrow-up-right" size={15} className="text-muted" />
+                      ) : (
+                        <Icon name="arrow-right" size={15} className="text-muted" />
+                      )}
+                    </div>
+                    <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
+                      {project.description}
+                    </p>
+                    {tags.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {tags.map((tag) => (
+                          <span key={tag} className="chip">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
-                    {project.description}
-                  </p>
-                  {tags.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {tags.map((tag) => (
-                        <span key={tag} className="chip">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-5 flex items-center gap-3 border-t border-[var(--border)] pt-4 text-xs">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--accent)]">
-                    {external ? "访问项目" : "站内查看"}
-                    <Icon name={external ? "external" : "arrow-right"} size={13} />
-                  </span>
-                  {project.repo_url && (
-                    <span className="inline-flex items-center gap-1.5 text-muted">
-                      <Icon name="github" size={13} />
-                      源码
+                  <div className="mt-5 flex items-center gap-3 border-t border-[var(--border)] pt-4 text-xs">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--accent)]">
+                      {external ? "访问项目" : "站内查看"}
+                      <Icon name={external ? "external" : "arrow-right"} size={13} />
                     </span>
-                  )}
+                    {project.repo_url && (
+                      <a
+                        href={project.repo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="pointer-events-auto relative z-20 inline-flex items-center gap-1.5 text-muted transition-colors hover:text-[var(--accent)]"
+                        aria-label={`查看 ${project.name} 的源码`}
+                      >
+                        <Icon name="github" size={13} />
+                        源码
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </>
-            );
-
-            return external ? (
-              <a
-                key={project.id}
-                id={`project-${project.id}`}
-                href={project.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass card card-hover reveal flex flex-col"
-                style={{ ["--i" as string]: index }}
-              >
-                {inner}
-              </a>
-            ) : (
-              <Link
-                key={project.id}
-                id={`project-${project.id}`}
-                href={project.url || "/"}
-                className="glass card card-hover reveal flex flex-col"
-                style={{ ["--i" as string]: index }}
-              >
-                {inner}
-              </Link>
+              </div>
             );
           })}
         </div>

@@ -209,21 +209,18 @@ const paths: Record<IconName, ReactNode> = {
     </>
   ),
   play: <path d="M8 5.5v13l11-6.5z" />,
-  pause: (
-    <>
-      <path d="M8 5v14M16 5v14" />
-    </>
-  ),
+  // 用实心矩形而不是描边线：这组图标在 filled 列表里，填充模式下的零面积线条不会显示
+  pause: <path d="M7.2 5h3.4v14H7.2zM13.4 5h3.4v14h-3.4z" />,
   "skip-back": (
     <>
       <path d="M18 6v12L9 12z" />
-      <path d="M6 6v12" />
+      <path d="M5 6h2.4v12H5z" />
     </>
   ),
   "skip-forward": (
     <>
       <path d="M6 6v12l9-6z" />
-      <path d="M18 6v12" />
+      <path d="M16.6 6H19v12h-2.4z" />
     </>
   ),
   volume: (

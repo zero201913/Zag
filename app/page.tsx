@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
-import { Markdown } from "@/components/markdown";
 import { NoteTimeline } from "@/components/note-timeline";
+import { PlaylistWave } from "@/components/playlist-wave";
 import { PostCard } from "@/components/post-card";
+import { VisitorGreeting } from "@/components/visitor-greeting";
 import {
   getSettings,
   getStats,
@@ -352,24 +353,7 @@ export default async function HomePage() {
       {/* Music + about strip */}
       <section className="mt-16 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="glass reveal rounded-[28px] p-7">
-          <span className="eyebrow">
-            <span className="eyebrow-dot" />
-            Now
-          </span>
-          <h2 className="section-title mt-2">关于这个站，也关于我</h2>
-          <div className="mt-3 max-h-40 overflow-hidden">
-            <Markdown content={settings.about_content.split("\n").slice(0, 6).join("\n")} />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/about" className="btn btn-primary">
-              认识我
-              <Icon name="arrow-right" size={15} />
-            </Link>
-            <a href={`mailto:${settings.email}`} className="btn">
-              <Icon name="mail" size={15} />
-              写邮件
-            </a>
-          </div>
+          <VisitorGreeting email={settings.email} />
         </div>
 
         <Link
@@ -378,7 +362,7 @@ export default async function HomePage() {
           style={{ ["--i" as string]: 1 }}
         >
           <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_10%_0%,var(--accent),transparent_55%),radial-gradient(100%_100%_at_100%_100%,var(--accent-2),transparent_55%)] opacity-30" />
-          <div className="relative flex h-full min-h-[210px] flex-col justify-between p-7">
+          <div className="relative flex h-full min-h-[230px] flex-col justify-between p-7">
             <div className="flex items-center justify-between">
               <span className="eyebrow">
                 <span className="eyebrow-dot" />
@@ -386,6 +370,7 @@ export default async function HomePage() {
               </span>
               <Icon name="music" size={18} className="text-[var(--accent)]" />
             </div>
+            <PlaylistWave />
             <div>
               <p className="text-xl font-semibold tracking-[-0.03em]">
                 {tracks[0]?.title ?? "还没有上传音乐"}

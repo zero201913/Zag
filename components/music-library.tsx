@@ -67,7 +67,7 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
         title="音乐库还是空的"
         description="去后台上传第一首歌。带内嵌封面的 MP3 会自动识别封面，也可以手动上传。"
         actionHref="/admin/music"
-        actionLabel="去上传音乐"
+        actionLabel="管理音乐资源"
       />
     );
   }
@@ -243,8 +243,12 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
       <div className="glass-soft flex flex-wrap items-center gap-3 rounded-2xl px-5 py-4 text-xs text-muted">
         <Icon name="cloud" size={15} className="text-[var(--accent)]" />
         <span>音频存放在 Cloudflare R2，全局播放器在页面切换时不会中断。</span>
-        <Link href="/admin/music" className="ml-auto text-[var(--accent)]">
-          管理音乐
+        <Link
+          href="/admin/music"
+          className="ml-auto inline-flex items-center gap-1.5 font-semibold text-[var(--accent)] transition-opacity hover:opacity-80"
+        >
+          <Icon name="lock" size={12} />
+          管理音乐资源
         </Link>
       </div>
     </div>

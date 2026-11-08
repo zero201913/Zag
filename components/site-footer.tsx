@@ -46,6 +46,9 @@ export async function SiteFooter() {
                 >
                   <Icon name="mail" size={17} />
                 </a>
+                <Link href="/admin" className="icon-btn" aria-label="进入后台" title="进入后台">
+                  <Icon name="lock" size={17} />
+                </Link>
               </div>
             </div>
 

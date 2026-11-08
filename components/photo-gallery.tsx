@@ -18,6 +18,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [view, setView] = useState<View>(IDENTITY);
   const stageRef = useRef<HTMLDivElement>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -25,6 +26,8 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
     originX: number;
     originY: number;
   } | null>(null);
+
+  const open = selected !== null;
 
   const close = useCallback(() => setSelected(null), []);
   const prev = useCallback(
@@ -42,7 +45,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
 
   // 打开查看时隐藏顶部导航 / 页脚 / 黑胶，并锁定页面滚动
   useEffect(() => {
-    if (selected === null) {
+    if (!open) {
       document.body.classList.remove("lightbox-open");
       return;
     }
@@ -51,6 +54,8 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
     setView(IDENTITY);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Lenis 监听的是 window 级滚轮事件，仅靠 overflow: hidden 拦不住，必须显式暂停
+    window.__lenis?.stop();
 
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") close();
@@ -75,16 +80,18 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
     return () => {
       document.body.classList.remove("lightbox-open");
       document.body.style.overflow = previousOverflow;
+      window.__lenis?.start();
       window.removeEventListener("keydown", onKey);
     };
-  }, [selected, close, prev, next]);
+  }, [open, close, prev, next]);
 
   // 原生 wheel 监听，才能 preventDefault 防止页面滚动
   useEffect(() => {
-    if (selected === null) return;
+    if (!open) return;
     const stage = stageRef.current;
     if (!stage) return;
     const element: HTMLDivElement = stage;
+    const overlay = lightboxRef.current;
 
     function onWheel(event: WheelEvent) {
       event.preventDefault();
@@ -104,9 +111,18 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
       });
     }
 
+    // 滚轮落在按钮、提示、留白区域时也不要把后面的图集页面滚走
+    function onOverlayWheel(event: WheelEvent) {
+      event.preventDefault();
+    }
+
     element.addEventListener("wheel", onWheel, { passive: false });
-    return () => element.removeEventListener("wheel", onWheel);
-  }, [selected]);
+    overlay?.addEventListener("wheel", onOverlayWheel, { passive: false });
+    return () => {
+      element.removeEventListener("wheel", onWheel);
+      overlay?.removeEventListener("wheel", onOverlayWheel);
+    };
+  }, [open]);
 
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (view.scale <= 1) return;
@@ -138,7 +154,15 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
   const current = selected !== null ? photos[selected] : null;
 
   const lightbox = current ? (
-    <div className="lightbox" onClick={close} role="dialog" aria-modal="true" aria-label="照片预览">
+    <div
+      ref={lightboxRef}
+      className="lightbox"
+      data-lenis-prevent=""
+      onClick={close}
+      role="dialog"
+      aria-modal="true"
+      aria-label="照片预览"
+    >
       <div className="lightbox-hint">
         <Icon name="search" size={13} />
         滚轮缩放 · 拖动平移 · 双击复位
