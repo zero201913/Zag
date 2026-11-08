@@ -8,6 +8,7 @@ import { NAV_ITEMS, SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { AppearanceTrigger } from "./appearance-trigger";
 import { Icon } from "./icons";
+import { LinkPending } from "./link-pending";
 import { ThemeToggle } from "./theme-toggle";
 
 // 搜索面板只在打开时才加载，减小首屏 JS
@@ -92,9 +93,11 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 className="nav-link"
+                prefetch
                 data-active={isActive(item.href)}
               >
                 {item.label}
+                <LinkPending />
               </Link>
             ))}
           </nav>
@@ -131,6 +134,7 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   className={cn("nav-link !rounded-2xl !px-4 !py-3", isActive(item.href) && "!bg-[var(--accent-soft)] !text-[var(--accent)]")}
+                  prefetch
                   data-active={false}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -138,6 +142,7 @@ export function SiteHeader() {
                   <span className="ml-2 text-[0.66rem] uppercase tracking-[0.12em] opacity-50">
                     {item.en}
                   </span>
+                  <LinkPending />
                 </Link>
               ))}
             </nav>

@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // 客户端路由缓存：30 秒内再次进入同一页面直接复用，避免重复请求 RSC
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
   poweredByHeader: false,
   async headers() {
     return [

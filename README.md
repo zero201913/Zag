@@ -110,6 +110,14 @@ npm run preview
 - 静态资源使用系统字体，不请求外部字体，减少首屏阻塞
 - 上传键名由服务端生成（`photos/年/月/uuid.ext`、`music/…`、`covers/…`），不信任原始文件名
 
+### 缓存与页面切换
+
+- `next.config.ts` 开启 `experimental.staleTimes`：动态页面客户端缓存 30 秒、静态资源 300 秒，返回已访问页面时直接复用
+- 顶部导航 `<Link prefetch>`：链接进入视口后预取目标路由，点击时不再等待完整网络往返
+- `app/loading.tsx`：路由级骨架屏 + 顶部进度光带，切换页面时立即给出反馈
+- `public/_headers`：`/_next/static/*` 使用一年 `immutable`，避免每次导航重复校验 JS / CSS
+- R2 媒体仍为长缓存；页面本身保持动态渲染，后台更新后无需等待构建
+
 ---
 
 ## 4. 技术结构
