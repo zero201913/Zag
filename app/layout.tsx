@@ -4,9 +4,11 @@ import "./globals.css";
 import { Ambient } from "@/components/ambient";
 import { AppearanceProvider } from "@/components/appearance-provider";
 import { AppearanceScript } from "@/components/appearance-script";
+import { FpsMeter } from "@/components/fps-meter";
 import { MusicProvider } from "@/components/music-provider";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
+import { SmoothScroll } from "@/components/smooth-scroll";
 import { ThemeScript } from "@/components/theme-script";
 import { VinylPlayer } from "@/components/vinyl-player";
 import { SITE } from "@/lib/site";
@@ -49,12 +51,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <Ambient />
+        <SmoothScroll />
         <MusicProvider>
           <AppearanceProvider>
             <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>
             <VinylPlayer />
           </AppearanceProvider>
         </MusicProvider>
+        <FpsMeter />
       </body>
     </html>
   );

@@ -29,10 +29,16 @@ const appearanceScript = `
       root.setAttribute("data-custom-bg", "true");
       root.style.setProperty("--custom-bg-image", 'url("' + bg.replace(/"/g, "%22") + '")');
       var blur = typeof s.blur === "number" ? Math.max(0, Math.min(40, s.blur)) : 24;
+      var ratio = blur <= 1 ? 1 : Math.max(0.06, 1 / (1 + blur / 3));
+      root.style.setProperty("--custom-bg-size", (ratio * 100).toFixed(2) + "%");
+      root.style.setProperty("--custom-bg-scale", (1.06 / ratio).toFixed(3));
+      root.style.setProperty("--custom-bg-ratio", ratio.toFixed(4));
       root.style.setProperty("--custom-bg-blur", blur + "px");
       root.style.setProperty("--custom-bg-mist", (0.22 + (blur / 40) * 0.33).toFixed(2));
+      root.setAttribute("data-custom-bg-sharp", blur <= 1 ? "true" : "false");
     } else {
       root.setAttribute("data-custom-bg", "false");
+      root.setAttribute("data-custom-bg-sharp", "false");
     }
   } catch (e) {}
 })();

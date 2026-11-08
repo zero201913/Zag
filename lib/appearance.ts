@@ -114,6 +114,7 @@ export function applyAppearance(settings: AppearanceSettings, isAdmin = false) {
 
   if (isAdmin) {
     root.setAttribute("data-custom-bg", "false");
+    root.setAttribute("data-custom-bg-sharp", "false");
     root.setAttribute("data-palette", "default");
     root.style.removeProperty("--custom-bg-image");
     clearCustomColors(root);
@@ -138,9 +139,20 @@ export function applyAppearance(settings: AppearanceSettings, isAdmin = false) {
 
   const hasCustomBackground = settings.background !== "default";
   root.setAttribute("data-custom-bg", hasCustomBackground ? "true" : "false");
+  root.setAttribute(
+    "data-custom-bg-sharp",
+    hasCustomBackground && settings.blur <= 1 ? "true" : "false",
+  );
   if (hasCustomBackground) {
     const safeBackground = settings.background.replace(/"/g, "%22");
     root.style.setProperty("--custom-bg-image", `url("${safeBackground}")`);
+    // 模糊在“缩小的画布”上计算，再由 transform 放大铺满：
+    // 需要光栅化的像素只有全屏的百分之几，滚动时几乎没有额外成本。
+    const pixelRatio =
+      settings.blur <= 1 ? 1 : Math.max(0.06, 1 / (1 + settings.blur / 3));
+    root.style.setProperty("--custom-bg-size", `${(pixelRatio * 100).toFixed(2)}%`);
+    root.style.setProperty("--custom-bg-scale", (1.06 / pixelRatio).toFixed(3));
+    root.style.setProperty("--custom-bg-ratio", pixelRatio.toFixed(4));
     root.style.setProperty("--custom-bg-blur", `${settings.blur}px`);
     root.style.setProperty(
       "--custom-bg-mist",

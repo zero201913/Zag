@@ -35,7 +35,7 @@ export function VinylPlayer() {
         <span className="vinyl-cover">
           {cover ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={cover} alt="" />
+            <img src={cover} alt="" decoding="async" />
           ) : (
             <span className="vinyl-fallback">
               <Icon name="music" size={18} />

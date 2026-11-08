@@ -118,6 +118,15 @@ npm run preview
 - `public/_headers`：`/_next/static/*` 使用一年 `immutable`，避免每次导航重复校验 JS / CSS
 - R2 媒体仍为长缓存；页面本身保持动态渲染，后台更新后无需等待构建
 
+### 滚动与渲染性能
+
+- **Lenis 平滑滚动**（`components/smooth-scroll.tsx`）：`duration 1.15` + 指数缓动，桌面滚轮平滑；`syncTouch: false` 保持移动端原生滚动；后台页与 `prefers-reduced-motion` 下自动禁用
+- **零成本模糊**：极光光斑不再使用 `filter: blur(48px)`，改为多层 `radial-gradient`；自定义背景改为「小画布 + transform 放大」并在小画布上模糊，光栅面积只有全屏的百分之几
+- **冻结叠加动画**：启用自定义背景时冻结光斑漂移，避免动画层叠加背景图反复重合成
+- **图片压缩**：上传时按用途限制长边（照片 2000 / 封面 1600 / 背景 1920 / 头像 800，质量 0.8）并转 WebP；R2 中历史图片已批量转 WebP
+- **图片懒加载**：列表与相册默认 `loading="lazy"`，仅首屏主封面 `fetchPriority="high"`
+- 开关 `?fps=1` 可显示实时帧率浮层，便于手动验证
+
 ---
 
 ## 4. 技术结构

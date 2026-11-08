@@ -84,6 +84,7 @@ export function AppearancePanel({
         role="dialog"
         aria-modal="true"
         aria-label="外观设置"
+        data-lenis-prevent
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">

@@ -89,6 +89,7 @@ export default async function PostPage({ params }: PageProps) {
             <img
               src={mediaUrl(post.cover_url)}
               alt={post.title}
+              loading="lazy"
               decoding="async"
               className="max-h-[520px] w-full object-cover"
             />

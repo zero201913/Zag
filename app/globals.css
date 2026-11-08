@@ -152,6 +152,30 @@ body {
   overflow-x: hidden;
 }
 
+/* ============================================================
+   Lenis smooth scroll
+   ============================================================ */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
 ::selection {
   background: color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--text);
@@ -215,18 +239,34 @@ body {
 
 .custom-bg {
   position: absolute;
-  inset: -4%;
+  left: 50%;
+  top: 50%;
+  /* 模糊靠“缩小画布 + 放大”实现：绘制面积只有屏幕的百分之几，
+     不再对整屏做 filter: blur()，滚动时几乎没有额外光栅化成本 */
+  width: var(--custom-bg-size, 100%);
+  height: var(--custom-bg-size, 100%);
   background-image: var(--custom-bg-image, none);
   background-size: cover;
   background-position: center;
-  filter: blur(var(--custom-bg-blur, 24px));
-  transform: scale(1.06);
+  transform: translate(-50%, -50%) scale(var(--custom-bg-scale, 1.06));
+  transform-origin: center;
+  /* 模糊半径按缩放比例换算，保证视觉上的朦胧度与滑杆数值一致 */
+  filter: blur(calc(var(--custom-bg-blur, 24px) * var(--custom-bg-ratio, 1)));
   opacity: 0;
   pointer-events: none;
-  will-change: transform, filter;
-  transition:
-    opacity 0.55s ease,
-    filter 0.3s ease;
+  transition: opacity 0.55s ease;
+}
+
+html[data-custom-bg="true"] .custom-bg {
+  opacity: 0.9;
+}
+
+/* 0 模糊时用原尺寸清晰图 */
+html[data-custom-bg="true"][data-custom-bg-sharp="true"] .custom-bg {
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%) scale(1.06);
+  filter: none;
 }
 
 .custom-bg-mist {
@@ -252,13 +292,15 @@ html[data-custom-bg="true"] .custom-bg-mist {
 
 html[data-custom-bg="true"] .blob {
   opacity: calc(var(--blob-opacity) * 0.5);
+  /* 有背景图时冻结光斑漂移：动画层叠加在放大后的背景图上会持续触发重合成 */
+  animation: none;
 }
 
 .blob {
   position: absolute;
   border-radius: 50%;
-  /* 渐变本身已经足够柔和，减少大面积 blur 的绘制开销 */
-  filter: blur(48px);
+  /* 径向渐变本身已经足够柔和；不再叠加大面积 filter:blur()，
+     否则滚动时浏览器会持续对整层做昂贵的模糊栅格化 */
   opacity: var(--blob-opacity);
   will-change: transform;
 }
@@ -287,7 +329,13 @@ html[data-custom-bg="true"] .blob {
   min-height: 320px;
   left: -10vw;
   top: -12vw;
-  background: radial-gradient(circle at 30% 30%, var(--accent), transparent 68%);
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, var(--accent) 86%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 58%, transparent) 22%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 48%,
+    transparent 78%
+  );
   animation: drift-a 30s ease-in-out infinite alternate;
 }
 
@@ -298,7 +346,13 @@ html[data-custom-bg="true"] .blob {
   min-height: 280px;
   right: -8vw;
   top: 8vh;
-  background: radial-gradient(circle at 60% 40%, var(--accent-2), transparent 66%);
+  background: radial-gradient(
+    circle at 60% 40%,
+    color-mix(in srgb, var(--accent-2) 86%, transparent) 0%,
+    color-mix(in srgb, var(--accent-2) 56%, transparent) 22%,
+    color-mix(in srgb, var(--accent-2) 24%, transparent) 48%,
+    transparent 76%
+  );
   animation: drift-b 36s ease-in-out infinite alternate;
 }
 
@@ -309,7 +363,13 @@ html[data-custom-bg="true"] .blob {
   min-height: 300px;
   left: 30vw;
   bottom: -22vw;
-  background: radial-gradient(circle at 50% 50%, var(--accent-3), transparent 64%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--accent-3) 86%, transparent) 0%,
+    color-mix(in srgb, var(--accent-3) 54%, transparent) 24%,
+    color-mix(in srgb, var(--accent-3) 22%, transparent) 50%,
+    transparent 78%
+  );
   animation: drift-c 42s ease-in-out infinite alternate;
 }
 
@@ -2052,6 +2112,32 @@ body.lightbox-open .vinyl-dock {
   .link-pending.is-pending {
     animation: none;
   }
+}
+
+/* ============================================================
+   FPS meter（?fps=1）
+   ============================================================ */
+.fps-meter {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 95;
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  color: var(--text);
+  font: 600 11px/1.4 var(--font-mono);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.fps-meter-min {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 /* ============================================================

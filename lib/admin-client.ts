@@ -87,7 +87,7 @@ export function uploadFile(
  * 在浏览器里把图片压成 WebP 并限制长边尺寸，然后再上传。
  * 1.67MB 的 PNG 照片压缩后通常只有 150-300KB，LCP 和总流量都会明显下降。
  */
-export async function compressImage(file: File, maxDimension = 2400, quality = 0.82): Promise<File> {
+export async function compressImage(file: File, maxDimension = 2400, quality = 0.8): Promise<File> {
   if (
     !file.type.startsWith("image/") ||
     file.type === "image/gif" ||

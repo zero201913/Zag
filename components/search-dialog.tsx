@@ -122,7 +122,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
           </button>
         </div>
 
-        <div className="max-h-[54vh] overflow-y-auto p-2">
+        <div className="max-h-[54vh] overflow-y-auto p-2" data-lenis-prevent>
           {!query.trim() && (
             <div className="p-2">
               <p className="px-2 pb-2 text-[0.68rem] uppercase tracking-[0.14em] text-muted">快速前往</p>

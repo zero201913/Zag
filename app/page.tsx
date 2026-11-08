@@ -140,6 +140,8 @@ export default async function HomePage() {
                   <img
                     src={mediaUrl(featured.cover_url)}
                     alt={featured.title}
+                    loading="eager"
+                    fetchPriority="high"
                     decoding="async"
                   />
                 ) : (

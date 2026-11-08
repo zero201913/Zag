@@ -219,7 +219,7 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--glass-soft)] text-[var(--accent)]">
                   {track.cover_key ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={mediaUrl(track.cover_key)} alt="" className="h-full w-full object-cover" />
+                    <img src={mediaUrl(track.cover_key)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : (
                     <Icon name="music" size={15} />
                   )}
@@ -282,7 +282,7 @@ function NowPlaying({
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
           {current?.cover_key ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={mediaUrl(current.cover_key)} alt="" className="h-full w-full object-cover" />
+            <img src={mediaUrl(current.cover_key)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(120%_120%_at_10%_0%,var(--accent),transparent_60%),radial-gradient(100%_100%_at_100%_100%,var(--accent-2),transparent_60%),var(--surface-2)] text-white/80">
               <Icon name="music" size={26} />

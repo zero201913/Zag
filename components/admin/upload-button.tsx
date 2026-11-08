@@ -29,7 +29,12 @@ export function UploadButton({
     setProgress(0);
     try {
       const prepared =
-        kind === "audio" ? file : await compressImage(file, kind === "cover" ? 1800 : 2400);
+        kind === "audio"
+          ? file
+          : await compressImage(
+              file,
+              kind === "cover" ? 1600 : kind === "background" ? 1920 : kind === "avatar" ? 800 : 2000,
+            );
       const result = await uploadFile(prepared, kind, setProgress);
       onUploaded(result);
     } catch (error) {
