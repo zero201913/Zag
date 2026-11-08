@@ -83,7 +83,7 @@ export function AppearancePanel({
         className="appearance-panel glass-strong"
         role="dialog"
         aria-modal="true"
-        aria-label="外观测试设置"
+        aria-label="外观设置"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -94,7 +94,7 @@ export function AppearancePanel({
             </span>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em]">背景与配色</h2>
             <p className="mt-1 text-[0.7rem] leading-relaxed text-muted">
-              测试功能 · 仅本地预览，不会部署或推送
+              背景图来自 R2，可在后台「背景」页上传管理
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="关闭外观设置">
@@ -169,7 +169,7 @@ export function AppearancePanel({
             />
             <p className="mt-1 text-[0.66rem] text-muted">
               {settings.background === "default"
-                ? "选择一张测试背景后可调整模糊程度。"
+                ? "选择一张背景后可调整朦胧程度。"
                 : "数值越大，背景越朦胧；0 为清晰原图。"}
             </p>
           </div>
