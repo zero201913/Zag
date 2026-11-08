@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { Markdown } from "@/components/markdown";
+import { NoteTimeline } from "@/components/note-timeline";
 import { PostCard } from "@/components/post-card";
 import {
   getSettings,
   getStats,
+  listNotes,
   listPhotos,
   listPosts,
   listTracks,
@@ -57,12 +59,13 @@ const MODULES: Array<{
 ];
 
 export default async function HomePage() {
-  const [settings, stats, posts, photos, tracks] = await Promise.all([
+  const [settings, stats, posts, photos, tracks, notes] = await Promise.all([
     getSettings(),
     getStats(),
     listPosts({ limit: 4 }),
     listPhotos(),
     listTracks(),
+    listNotes({ limit: 6 }),
   ]);
 
   const featured = posts[0];
@@ -282,6 +285,27 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {/* Notes */}
+      {notes.length > 0 && (
+        <section className="mt-16">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" />
+                Notes
+              </span>
+              <h2 className="section-title mt-2">说说</h2>
+              <p className="mt-1 text-xs text-muted">没有标题的小段文字，点开可以展开。</p>
+            </div>
+            <Link href="/notes" className="btn btn-ghost">
+              全部说说
+              <Icon name="arrow-right" size={15} />
+            </Link>
+          </div>
+          <NoteTimeline notes={notes} />
+        </section>
+      )}
 
       {/* Photos preview */}
       {photos.length > 0 && (

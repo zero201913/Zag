@@ -4,6 +4,7 @@ import type {
   Background,
   BlogStats,
   Bookmark,
+  Note,
   Photo,
   Post,
   PostSummary,
@@ -103,6 +104,16 @@ export async function listBackgrounds(): Promise<Background[]> {
   return results ?? [];
 }
 
+export async function listNotes(options: { limit?: number } = {}): Promise<Note[]> {
+  const { limit = 30 } = options;
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT * FROM notes ORDER BY created_at DESC LIMIT ?")
+    .bind(limit)
+    .all<Note>();
+  return results ?? [];
+}
+
 export async function listPhotos(): Promise<Photo[]> {
   const db = await getDb();
   const { results } = await db
@@ -146,9 +157,10 @@ export async function getStats(): Promise<BlogStats> {
       (SELECT COUNT(*) FROM projects) AS projects,
       (SELECT COUNT(*) FROM bookmarks) AS bookmarks,
       (SELECT COUNT(*) FROM photos) AS photos,
-      (SELECT COUNT(*) FROM tracks) AS tracks`)
+      (SELECT COUNT(*) FROM tracks) AS tracks,
+      (SELECT COUNT(*) FROM notes) AS notes`)
     .first<BlogStats>();
-  return row ?? { posts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0 };
+  return row ?? { posts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0, notes: 0 };
 }
 
 export async function getAdminStats(): Promise<BlogStats & { drafts: number }> {
@@ -160,9 +172,10 @@ export async function getAdminStats(): Promise<BlogStats & { drafts: number }> {
       (SELECT COUNT(*) FROM projects) AS projects,
       (SELECT COUNT(*) FROM bookmarks) AS bookmarks,
       (SELECT COUNT(*) FROM photos) AS photos,
-      (SELECT COUNT(*) FROM tracks) AS tracks`)
+      (SELECT COUNT(*) FROM tracks) AS tracks,
+      (SELECT COUNT(*) FROM notes) AS notes`)
     .first<BlogStats & { drafts: number }>();
-  return row ?? { posts: 0, drafts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0 };
+  return row ?? { posts: 0, drafts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0, notes: 0 };
 }
 
 function likeQuery(q: string) {

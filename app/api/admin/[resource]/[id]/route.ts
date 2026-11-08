@@ -69,6 +69,13 @@ interface TrackRow {
   sort_order: number;
 }
 
+interface NoteRow {
+  id: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+}
+
 async function fetchRow(resource: string, id: string) {
   const db = await getDb();
   return db.prepare(`SELECT * FROM ${resource} WHERE id = ?`).bind(id).first();
@@ -202,6 +209,14 @@ export async function PUT(
         console.error("failed to delete old photo object", error);
       }
     }
+  } else if (resource === "notes") {
+    const row = existing as unknown as NoteRow;
+    const content = requiredText(body.content, 2000) || row.content;
+
+    await db
+      .prepare("UPDATE notes SET content = ?, updated_at = unixepoch() WHERE id = ?")
+      .bind(content, id)
+      .run();
   } else {
     const row = existing as unknown as TrackRow;
     const r2Key = requiredText(body.r2_key, 500) || row.r2_key;

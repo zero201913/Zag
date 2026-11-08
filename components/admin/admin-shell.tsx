@@ -8,6 +8,7 @@ import { Icon, type IconName } from "../icons";
 const NAV: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/admin", label: "概览", icon: "grid" },
   { href: "/admin/posts", label: "文章", icon: "file" },
+  { href: "/admin/notes", label: "说说", icon: "message" },
   { href: "/admin/projects", label: "项目", icon: "folder" },
   { href: "/admin/bookmarks", label: "收藏夹", icon: "bookmark" },
   { href: "/admin/photos", label: "照片", icon: "image" },

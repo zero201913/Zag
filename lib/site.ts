@@ -2,13 +2,14 @@ export const SITE = {
   name: "Zag",
   fullName: "Zag · 玻璃与光",
   description:
-    "一个关于代码、设计与日常的数字花园。文章、收藏、项目、照片与音乐。",
+    "一个关于代码、设计与日常的数字花园。文章、说说、收藏、项目、照片与音乐。",
   url: "https://zag.blog",
 } as const;
 
 export const NAV_ITEMS = [
   { href: "/", label: "首页", en: "Home" },
   { href: "/posts", label: "文章", en: "Posts" },
+  { href: "/notes", label: "说说", en: "Notes" },
   { href: "/bookmarks", label: "收藏夹", en: "Bookmarks" },
   { href: "/projects", label: "项目", en: "Projects" },
   { href: "/photos", label: "照片", en: "Photos" },

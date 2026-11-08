@@ -20,6 +20,19 @@ export function formatShortDate(unixSeconds: number) {
   }).format(new Date(unixSeconds * 1000));
 }
 
+export function formatDateTime(unixSeconds: number, locale = "zh-CN") {
+  if (!unixSeconds) return "";
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    // 固定时区，避免服务端（UTC）与浏览器本地时区渲染结果不一致
+    timeZone: "Asia/Shanghai",
+  }).format(new Date(unixSeconds * 1000));
+}
+
 export function parseTags(tags: string | null | undefined): string[] {
   if (!tags) return [];
   return tags

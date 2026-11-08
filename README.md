@@ -2,13 +2,14 @@
 
 一个跑在 Cloudflare Workers 上的多功能个人博客：Next.js 16 + D1（SQLite）+ R2（对象存储），玻璃拟态视觉，自带专属内容后台。
 
-- 前台：首页 / 文章 / 收藏夹 / 项目 / 照片 / 音乐 / 关于
+- 前台：首页 / 文章 / 说说 / 收藏夹 / 项目 / 照片 / 音乐 / 关于
 - 视觉：玻璃朦胧风格、动态极光背景、深浅色切换、移动端适配
 - 外观：可切换 R2 背景图、调整背景朦胧度、切换/自定义配色
+- 说说：没有标题和摘要的短文字，主页按时间线排列；每条为纸页长条，默认只显示 50 字，可展开 / 收起
 - 搜索：`Ctrl / ⌘ + K` 或 `/` 打开快捷搜索，按标题检索全部内容
 - 照片：按相册分类；点开后沉浸查看，顶部/底部栏淡出，支持滚轮缩放、拖动平移、右上角退出
 - 音乐：按专辑分组为不同音乐包；全局播放器跨页面不中断，右下角黑胶可播放/暂停；自动读取 MP3 内嵌封面与 ID3 标签
-- 后台：`/admin`，专属指令代码登录；文章、项目、收藏、照片、音乐、站点文案与登录指令全部可管理
+- 后台：`/admin`，专属指令代码登录；文章、说说、项目、收藏、照片、音乐、站点文案与登录指令全部可管理
 - 存储：内容在 D1，图片 / 音频在 R2，媒体通过带 Range 支持的接口输出
 
 ## 线上地址
@@ -72,7 +73,7 @@ npx wrangler secret put ADMIN_ACCESS_CODE
 npm run deploy
 ```
 
-> 当前仓库的 `0001_init.sql`、`0002_photo_albums.sql` 已经应用到本地与远程 D1；重复执行会跳过已完成的迁移。
+> 迁移文件 `0001`–`0004` 已写入仓库，重复执行会跳过已完成的迁移；新增表（如说说）部署前请先运行 `npm run db:migrate:remote`。
 > 部署完成后，建议先在后台「设置 → 安全」把初始指令换成自己的。
 
 `npm run deploy` 会执行 `opennextjs-cloudflare build && opennextjs-cloudflare deploy`。
@@ -92,6 +93,7 @@ npm run preview
 | --- | --- |
 | `/admin` | 内容统计、最近文章、最近照片 / 音乐、存储状态 |
 | `/admin/posts` | 新建 / 编辑 / 删除文章；Markdown 编辑与预览、封面上传、标签、草稿、精选 |
+| `/admin/notes` | 发布短文字说说；编辑、删除；发布后立即出现在主页时间线 |
 | `/admin/projects` | 项目名称、链接、源码、图标、标签、排序 |
 | `/admin/bookmarks` | 收藏标题、链接、分类、描述 |
 | `/admin/photos` | 多选上传到 R2、选择相册、自动读取尺寸、编辑标题 / 说明 / 相册 / 拍摄日期、删除（同时删 R2 文件） |
@@ -116,6 +118,7 @@ npm run preview
 app/
 ├─ page.tsx                  首页
 ├─ posts/                    文章列表 + 详情
+├─ notes/                    说说时间线
 ├─ bookmarks/ projects/      收藏夹 / 项目
 ├─ photos/ music/ about/     照片 / 音乐 / 关于
 ├─ admin/
@@ -130,9 +133,10 @@ app/
       ├─ upload/             直传 R2
       ├─ settings/           站点文案
       ├─ access-code/        修改进入指令
-      └─ [resource]/[id]/    文章 / 项目 / 收藏 / 照片 / 音乐 CRUD
+      └─ [resource]/[id]/    文章 / 说说 / 项目 / 收藏 / 照片 / 音乐 CRUD
 components/
 ├─ site-header / footer      公共导航
+├─ note-timeline              说说时间线（纸页样式 / 展开收起）
 ├─ search-dialog             全局快捷搜索
 ├─ photo-gallery             照片瀑布流 + 沉浸灯箱（缩放 / 拖动）
 ├─ music-provider            全局音频状态与跨页面播放
@@ -149,14 +153,15 @@ lib/
 migrations/
 ├─ 0001_init.sql             数据库结构与初始内容
 ├─ 0002_photo_albums.sql     照片相册字段
-└─ 0003_backgrounds.sql      R2 背景图索引
+├─ 0003_backgrounds.sql      R2 背景图索引
+└─ 0004_notes.sql            说说时间线
 ```
 
 ### 数据库表
 
-`posts`、`projects`、`bookmarks`、`photos`、`tracks`、`backgrounds`、`settings`、`admin_sessions`、`login_attempts`。
+`posts`、`notes`、`projects`、`bookmarks`、`photos`、`tracks`、`backgrounds`、`settings`、`admin_sessions`、`login_attempts`。
 
-- 文章正文存 `posts.content`（Markdown）
+- 文章正文存 `posts.content`（Markdown）；说说存 `notes.content`（纯文本，无标题 / 摘要 / 标签）
 - 照片通过 `photos.album` 分类；音乐通过 `tracks.album` 分成音乐包
 - 图片 / 音频 / 背景文件存 R2，表里只存 `r2_key` / `cover_key`；背景图独立放在 `backgrounds/`
 - 后台会话存 D1 的 `admin_sessions`，Cookie 里只有随机 token（数据库存 SHA-256）
@@ -213,7 +218,7 @@ npx wrangler secret list
 - **导航项**：`lib/site.ts` 的 `NAV_ITEMS`
 - **配色 / 玻璃强度 / 动效**：`app/globals.css` 顶部的 CSS 变量（`:root` 与 `.dark`）
 - **首页文案 / 关于页**：后台「设置」
-- **默认内容 / 数据结构**：`migrations/0001_init.sql`、`migrations/0002_photo_albums.sql`
+- **默认内容 / 数据结构**：`migrations/0001_init.sql`、`migrations/0002_photo_albums.sql`、`migrations/0004_notes.sql`
 - **字体**：`app/globals.css` 的 `--font-sans`（默认系统字体，无外部字体请求）
 
 ### 绑定自己的域名

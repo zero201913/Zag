@@ -2,6 +2,7 @@ import {
   getDb,
   getPostById,
   listBookmarks,
+  listNotes,
   listPhotos,
   listProjects,
   listTracks,
@@ -50,6 +51,8 @@ export async function GET(
       return Response.json({ items: await listPhotos() });
     case "tracks":
       return Response.json({ items: await listTracks() });
+    case "notes":
+      return Response.json({ items: await listNotes({ limit: 500 }) });
   }
 }
 
@@ -173,6 +176,23 @@ export async function POST(
       .run();
 
     const item = await db.prepare("SELECT * FROM photos WHERE id = ?").bind(id).first();
+    return Response.json({ item }, { status: 201 });
+  }
+
+  if (resource === "notes") {
+    const content = requiredText(body.content, 2000);
+    if (!content) return Response.json({ error: "说说内容不能为空" }, { status: 400 });
+    const id = crypto.randomUUID();
+
+    await db
+      .prepare(
+        `INSERT INTO notes (id, content, created_at, updated_at)
+         VALUES (?, ?, unixepoch(), unixepoch())`,
+      )
+      .bind(id, content)
+      .run();
+
+    const item = await db.prepare("SELECT * FROM notes WHERE id = ?").bind(id).first();
     return Response.json({ item }, { status: 201 });
   }
 

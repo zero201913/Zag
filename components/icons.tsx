@@ -43,6 +43,8 @@ export type IconName =
   | "loader"
   | "chevron-left"
   | "chevron-right"
+  | "chevron-down"
+  | "message"
   | "clock"
   | "tag"
   | "lock"
@@ -272,6 +274,13 @@ const paths: Record<IconName, ReactNode> = {
   loader: <path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />,
   "chevron-left": <path d="m15 5-7 7 7 7" />,
   "chevron-right": <path d="m9 5 7 7-7 7" />,
+  "chevron-down": <path d="m5 9 7 7 7-7" />,
+  message: (
+    <>
+      <path d="M21 11.6a8.4 8.4 0 0 1-12.2 7.5L4 21l1.9-4.6A8.4 8.4 0 1 1 21 11.6z" />
+      <path d="M8.6 11.7h.01M12 11.7h.01M15.4 11.7h.01" />
+    </>
+  ),
   clock: (
     <>
       <circle cx="12" cy="12" r="8.5" />

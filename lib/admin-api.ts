@@ -8,6 +8,7 @@ export const ADMIN_RESOURCES = [
   "bookmarks",
   "photos",
   "tracks",
+  "notes",
 ] as const;
 
 export type AdminResource = (typeof ADMIN_RESOURCES)[number];

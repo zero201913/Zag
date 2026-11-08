@@ -25,6 +25,7 @@ export default async function AdminDashboardPage() {
 
   const cards: Array<{ label: string; value: number; icon: IconName; href: string; note: string }> = [
     { label: "文章", value: stats.posts, icon: "file", href: "/admin/posts", note: `${stats.drafts} 篇草稿` },
+    { label: "说说", value: stats.notes, icon: "message", href: "/admin/notes", note: "短句与碎片" },
     { label: "项目", value: stats.projects, icon: "folder", href: "/admin/projects", note: "链接与作品" },
     { label: "收藏", value: stats.bookmarks, icon: "bookmark", href: "/admin/bookmarks", note: "分类收纳" },
     { label: "照片", value: stats.photos, icon: "image", href: "/admin/photos", note: "存放在 R2" },
@@ -44,7 +45,7 @@ export default async function AdminDashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {cards.map((card, index) => (
           <Link
             key={card.label}
@@ -127,6 +128,7 @@ export default async function AdminDashboardPage() {
             <h2 className="text-base font-semibold">快速操作</h2>
             <div className="mt-3 grid gap-2">
               <QuickLink href="/admin/posts" icon="pencil" label="写一篇文章" />
+              <QuickLink href="/admin/notes" icon="message" label="写一条说说" />
               <QuickLink href="/admin/photos" icon="image" label="上传照片" />
               <QuickLink href="/admin/backgrounds" icon="palette" label="管理背景" />
               <QuickLink href="/admin/music" icon="music" label="上传音乐" />

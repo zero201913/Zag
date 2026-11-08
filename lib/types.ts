@@ -63,6 +63,13 @@ export interface BackgroundOption {
   url: string;
 }
 
+export interface Note {
+  id: string;
+  content: string;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface Track {
   id: string;
   title: string;
@@ -99,4 +106,5 @@ export interface BlogStats {
   bookmarks: number;
   photos: number;
   tracks: number;
+  notes: number;
 }
