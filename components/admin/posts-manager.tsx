@@ -149,7 +149,7 @@ export function PostsManager({
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
-        <div className="glass rounded-[24px] p-3">
+        <div className="glass flex min-h-0 flex-col rounded-[24px] p-3">
           <div className="space-y-2 px-2 py-1.5">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
@@ -174,11 +174,23 @@ export function PostsManager({
               />
             </div>
           </div>
-          <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
+          <div className="max-h-[60vh] min-h-0 flex-1 space-y-1 overflow-y-auto pr-1 xl:max-h-none">
             {items.length === 0 && (
-              <p className="px-3 py-10 text-center text-sm text-muted">
-                {query ? `没有找到标题包含「${query}」的文章。` : "还没有文章，点右上角新建一篇。"}
-              </p>
+              <div className="flex h-full flex-col items-center justify-center px-3 py-10 text-center">
+                <Icon name="file" size={22} className="text-[var(--accent)] opacity-70" />
+                <p className="mt-2 text-sm text-muted">
+                  {query ? `没有找到标题包含「${query}」的文章。` : "还没有文章，点右上角新建一篇。"}
+                </p>
+                {query && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost mt-3 !px-3 !py-1.5 !text-xs"
+                    onClick={() => setSearch("")}
+                  >
+                    清除搜索
+                  </button>
+                )}
+              </div>
             )}
             {items.map((post) => (
               <div
@@ -225,7 +237,7 @@ export function PostsManager({
               </div>
             ))}
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border)] px-1 pt-2.5">
             <button
               type="button"
               className="btn btn-ghost !px-2.5 !py-1.5 !text-xs"
