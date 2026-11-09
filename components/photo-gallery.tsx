@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Photo } from "@/lib/types";
+import { categoryText } from "@/lib/categories";
 import { clamp, formatDate, mediaUrl } from "@/lib/utils";
 import { Icon } from "./icons";
 
@@ -152,6 +153,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
   }
 
   const current = selected !== null ? photos[selected] : null;
+  const currentAlbum = current ? categoryText(current.album, "未分类") : "";
 
   const lightbox = current ? (
     <div
@@ -248,7 +250,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
           )}
         </div>
         <p className="shrink-0 text-xs text-white/60">
-          {current.album ? `${current.album} · ` : ""}
+          {currentAlbum ? `${currentAlbum} · ` : ""}
           {selected! + 1} / {photos.length}
           {current.taken_at ? ` · ${formatDate(current.taken_at)}` : ""}
         </p>

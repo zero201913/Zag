@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { categoryText } from "@/lib/categories";
 import { mediaUrl } from "@/lib/utils";
 import { Icon } from "./icons";
 import { useMusic } from "./music-provider";
@@ -12,6 +13,7 @@ export function VinylPlayer() {
   if ((pathname ?? "").startsWith("/admin")) return null;
 
   const cover = current?.cover_key ? mediaUrl(current.cover_key) : "";
+  const album = current ? categoryText(current.album, "") : "";
 
   return (
     <div className="vinyl-dock">
@@ -20,7 +22,7 @@ export function VinylPlayer() {
           <p className="truncate text-[0.7rem] font-semibold">{current.title}</p>
           <p className="truncate text-[0.62rem] text-muted">
             {current.artist || "未知艺术家"}
-            {current.album ? ` · ${current.album}` : ""}
+            {album ? ` · ${album}` : ""}
           </p>
         </div>
       )}

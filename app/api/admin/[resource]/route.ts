@@ -1,6 +1,7 @@
 import {
   getDb,
   getPostById,
+  listAdminPostsPage,
   listBookmarks,
   listNotes,
   listPhotos,
@@ -20,6 +21,7 @@ import {
   text,
   uniqueSlug,
 } from "@/lib/admin-api";
+import { normalizeCategory } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +40,10 @@ export async function GET(
   const db = await getDb();
   switch (resource) {
     case "posts": {
-      const { results } = await db
-        .prepare("SELECT * FROM posts ORDER BY featured DESC, created_at DESC")
-        .all();
-      return Response.json({ items: results ?? [] });
+      const url = new URL(request.url);
+      const page = Number(url.searchParams.get("page") ?? "1") || 1;
+      const query = url.searchParams.get("q") ?? "";
+      return Response.json(await listAdminPostsPage({ page, query }));
     }
     case "projects":
       return Response.json({ items: await listProjects() });
@@ -167,7 +169,7 @@ export async function POST(
         id,
         text(body.title, 160),
         text(body.description, 600),
-        text(body.album, 80).trim() || "未分类",
+        normalizeCategory(text(body.album, 80)),
         r2Key,
         numberOrNull(body.width),
         numberOrNull(body.height),
@@ -212,7 +214,7 @@ export async function POST(
       id,
       title,
       text(body.artist, 120),
-      text(body.album, 120),
+      normalizeCategory(text(body.album, 120)),
       r2Key,
       text(body.cover_key, 500).trim() || null,
       numberOrNull(body.duration),

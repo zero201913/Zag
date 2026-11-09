@@ -7,6 +7,7 @@ import type {
   Note,
   Photo,
   Post,
+  PostPage,
   PostSummary,
   Project,
   SearchHit,
@@ -78,6 +79,37 @@ export async function listAdminPosts(): Promise<Post[]> {
     .prepare("SELECT * FROM posts ORDER BY featured DESC, created_at DESC")
     .all<Post>();
   return results ?? [];
+}
+
+export const ADMIN_POST_PAGE_SIZE = 10;
+
+export async function listAdminPostsPage(
+  options: { page?: number; query?: string } = {},
+): Promise<PostPage> {
+  const pageSize = ADMIN_POST_PAGE_SIZE;
+  const query = (options.query ?? "").trim();
+  const db = await getDb();
+  const where = query ? "WHERE title LIKE ? ESCAPE '\\'" : "";
+  const filters: string[] = query ? [likeQuery(query)] : [];
+
+  const countRow = await db
+    .prepare(`SELECT COUNT(*) AS total FROM posts ${where}`)
+    .bind(...filters)
+    .first<{ total: number }>();
+  const total = countRow?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(Math.max(1, Math.trunc(options.page ?? 1) || 1), totalPages);
+
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM posts ${where}
+       ORDER BY featured DESC, created_at DESC, id DESC
+       LIMIT ? OFFSET ?`,
+    )
+    .bind(...filters, pageSize, (page - 1) * pageSize)
+    .all<Post>();
+
+  return { items: results ?? [], total, page, pageSize, totalPages, query };
 }
 
 export async function listProjects(): Promise<Project[]> {

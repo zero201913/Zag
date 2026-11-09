@@ -23,17 +23,22 @@ export function AdminPageHeader({
 export function AdminField({
   label,
   hint,
+  action,
   children,
   className = "",
 }: {
   label: string;
   hint?: string;
+  action?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div className={className}>
-      <label className="label">{label}</label>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <label className="label !mb-0">{label}</label>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
       {children}
       {hint && <p className="mt-1 text-[0.68rem] text-muted">{hint}</p>}
     </div>

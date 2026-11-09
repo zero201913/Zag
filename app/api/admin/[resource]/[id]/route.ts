@@ -13,6 +13,7 @@ import {
   text,
   uniqueSlug,
 } from "@/lib/admin-api";
+import { normalizeCategory } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -192,7 +193,7 @@ export async function PUT(
       .bind(
         text(body.title, 160, row.title),
         text(body.description, 600, row.description),
-        text(body.album, 80, row.album).trim() || "未分类",
+        normalizeCategory(text(body.album, 80, row.album)),
         r2Key,
         body.width === undefined ? row.width : numberOrNull(body.width),
         body.height === undefined ? row.height : numberOrNull(body.height),
@@ -232,7 +233,7 @@ export async function PUT(
       .bind(
         requiredText(body.title, 200) || row.title,
         text(body.artist, 120, row.artist),
-        text(body.album, 120, row.album),
+        normalizeCategory(text(body.album, 120, row.album)),
         r2Key,
         coverKey,
         body.duration === undefined ? row.duration : numberOrNull(body.duration),

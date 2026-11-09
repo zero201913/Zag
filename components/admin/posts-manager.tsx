@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { Toast, useToast } from "./toast";
 import { UploadButton } from "./upload-button";
 import { Icon } from "../icons";
 import { apiRequest } from "@/lib/admin-client";
 import { renderMarkdown } from "@/lib/markdown";
-import type { Post } from "@/lib/types";
+import type { Post, PostPage } from "@/lib/types";
 import { formatShortDate, mediaUrl } from "@/lib/utils";
 
 function blankPost(): Post {
@@ -26,21 +26,98 @@ function blankPost(): Post {
   };
 }
 
-export function PostsManager({ initial }: { initial: Post[] }) {
+function mergeTags(existing: string, incoming: string[]) {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const part of [...existing.split(","), ...incoming]) {
+    const tag = part.trim();
+    if (!tag) continue;
+    const key = tag.toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(tag);
+    if (merged.length >= 12) break;
+  }
+  return merged.join(",");
+}
+
+export function PostsManager({
+  initial,
+  initialPage,
+  initialTotal,
+  initialTotalPages,
+  initialQuery,
+  pageSize,
+}: {
+  initial: Post[];
+  initialPage: number;
+  initialTotal: number;
+  initialTotalPages: number;
+  initialQuery: string;
+  pageSize: number;
+}) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Post | null>(initial[0] ?? null);
+  const [page, setPage] = useState(initialPage);
+  const [total, setTotal] = useState(initialTotal);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [query, setQuery] = useState(initialQuery);
+  const [search, setSearch] = useState(initialQuery);
+  const [loading, setLoading] = useState(false);
+  const requestSeq = useRef(0);
   const { toast, show } = useToast();
+
+  async function loadPage(nextPage: number, nextQuery = query) {
+    const seq = ++requestSeq.current;
+    setLoading(true);
+    try {
+      const data = await apiRequest<PostPage>(
+        `/api/admin/posts?page=${nextPage}&q=${encodeURIComponent(nextQuery)}`,
+      );
+      if (seq !== requestSeq.current) return;
+      setItems(data.items);
+      setPage(data.page);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
+      setQuery(data.query);
+      setSearch(data.query);
+      setEditing((current) => {
+        if (current) {
+          const stillHere = data.items.find((entry) => entry.id === current.id);
+          if (stillHere) return stillHere;
+        }
+        return data.items[0] ?? null;
+      });
+    } catch (error) {
+      if (seq === requestSeq.current) show((error as Error).message, "error");
+    } finally {
+      if (seq === requestSeq.current) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (search.trim() === query) return;
+    const timer = window.setTimeout(() => {
+      void loadPage(1, search.trim());
+    }, 350);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, query]);
 
   function startNew() {
     setEditing(blankPost());
   }
 
-  function handleSaved(item: Post) {
-    setItems((list) => {
-      const exists = list.some((entry) => entry.id === item.id);
-      if (exists) return list.map((entry) => (entry.id === item.id ? item : entry));
-      return [item, ...list];
-    });
+  function handleSaved(item: Post, isNew: boolean) {
+    if (isNew) {
+      show(item.status === "published" ? "文章已保存并发布" : "草稿已保存");
+      setEditing(item);
+      setSearch("");
+      void loadPage(1, "");
+      return;
+    }
+
+    setItems((list) => list.map((entry) => (entry.id === item.id ? item : entry)));
     setEditing(item);
     show(item.status === "published" ? "文章已保存并发布" : "草稿已保存");
   }
@@ -49,13 +126,14 @@ export function PostsManager({ initial }: { initial: Post[] }) {
     if (!window.confirm(`确定删除文章「${post.title}」吗？此操作不可撤销。`)) return;
     try {
       await apiRequest(`/api/admin/posts/${post.id}`, { method: "DELETE" });
-      setItems((list) => list.filter((entry) => entry.id !== post.id));
-      if (editing?.id === post.id) setEditing(null);
+      await loadPage(items.length === 1 && page > 1 ? page - 1 : page);
       show("文章已删除");
     } catch (error) {
       show((error as Error).message, "error");
     }
   }
+
+  const draftCount = items.filter((item) => item.status === "draft").length;
 
   return (
     <div className="pb-10">
@@ -72,18 +150,34 @@ export function PostsManager({ initial }: { initial: Post[] }) {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)]">
         <div className="glass rounded-[24px] p-3">
-          <div className="flex items-center justify-between px-2 py-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              全部文章 · {items.length}
-            </p>
-            <span className="text-[0.66rem] text-muted">
-              {items.filter((item) => item.status === "draft").length} 草稿
-            </span>
+          <div className="space-y-2 px-2 py-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                全部文章 · {total}
+              </p>
+              <span className="text-[0.66rem] text-muted">
+                {loading ? "加载中…" : `本页 ${draftCount} 草稿`}
+              </span>
+            </div>
+            <div className="relative">
+              <Icon
+                name="search"
+                size={13}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              />
+              <input
+                className="field !py-2 !pl-9 !text-xs"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="搜索标题，快速定位文章…"
+                aria-label="搜索文章标题"
+              />
+            </div>
           </div>
-          <div className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
+          <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
             {items.length === 0 && (
               <p className="px-3 py-10 text-center text-sm text-muted">
-                还没有文章，点右上角新建一篇。
+                {query ? `没有找到标题包含「${query}」的文章。` : "还没有文章，点右上角新建一篇。"}
               </p>
             )}
             {items.map((post) => (
@@ -131,6 +225,29 @@ export function PostsManager({ initial }: { initial: Post[] }) {
               </div>
             ))}
           </div>
+          <div className="mt-2 flex items-center justify-between gap-2 px-1">
+            <button
+              type="button"
+              className="btn btn-ghost !px-2.5 !py-1.5 !text-xs"
+              disabled={page <= 1 || loading}
+              onClick={() => void loadPage(page - 1)}
+            >
+              <Icon name="chevron-left" size={13} />
+              上一页
+            </button>
+            <span className="text-[0.66rem] text-muted">
+              第 {page} / {totalPages} 页 · 每页 {pageSize} 条
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost !px-2.5 !py-1.5 !text-xs"
+              disabled={page >= totalPages || loading}
+              onClick={() => void loadPage(page + 1)}
+            >
+              下一页
+              <Icon name="chevron-right" size={13} />
+            </button>
+          </div>
         </div>
 
         <div className="admin-editor">
@@ -141,6 +258,7 @@ export function PostsManager({ initial }: { initial: Post[] }) {
               onSaved={handleSaved}
               onCancel={() => setEditing(null)}
               onError={(message) => show(message, "error")}
+              onNotice={(message) => show(message)}
             />
           ) : (
             <div className="glass flex min-h-[420px] flex-col items-center justify-center rounded-[24px] p-8 text-center">
@@ -170,18 +288,81 @@ function PostEditor({
   onSaved,
   onCancel,
   onError,
+  onNotice,
 }: {
   post: Post;
-  onSaved: (item: Post) => void;
+  onSaved: (item: Post, isNew: boolean) => void;
   onCancel: () => void;
   onError: (message: string) => void;
+  onNotice: (message: string) => void;
 }) {
   const [form, setForm] = useState(post);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [aiExcerpt, setAiExcerpt] = useState(false);
+  const [aiTags, setAiTags] = useState(false);
 
   function update<K extends keyof Post>(key: K, value: Post[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function generateExcerpt() {
+    if (!form.content.trim()) {
+      onError("请先输入正文，再生成摘要");
+      return;
+    }
+    if (
+      form.excerpt.trim() &&
+      !window.confirm("当前摘要已有内容，确定用 AI 生成的摘要覆盖吗？")
+    ) {
+      return;
+    }
+
+    setAiExcerpt(true);
+    try {
+      const data = await apiRequest<{ excerpt: string }>("/api/admin/ai", {
+        method: "POST",
+        body: JSON.stringify({
+          task: "excerpt",
+          title: form.title,
+          content: form.content,
+        }),
+      });
+      update("excerpt", data.excerpt);
+      onNotice("AI 摘要已生成");
+    } catch (error) {
+      onError((error as Error).message);
+    } finally {
+      setAiExcerpt(false);
+    }
+  }
+
+  async function generateTags() {
+    if (!form.content.trim()) {
+      onError("请先输入正文，再生成标签");
+      return;
+    }
+
+    setAiTags(true);
+    try {
+      const data = await apiRequest<{ tags: string[] }>("/api/admin/ai", {
+        method: "POST",
+        body: JSON.stringify({
+          task: "tags",
+          title: form.title,
+          content: form.content,
+        }),
+      });
+      const incoming = Array.isArray(data.tags) ? data.tags : [];
+      const merged = mergeTags(form.tags, incoming);
+      update("tags", merged);
+      const count = merged ? merged.split(",").length : 0;
+      onNotice(incoming.length ? `标签已合并，共 ${count} 个` : "AI 没有补充新的标签");
+    } catch (error) {
+      onError((error as Error).message);
+    } finally {
+      setAiTags(false);
+    }
   }
 
   async function save() {
@@ -201,16 +382,17 @@ function PostEditor({
         status: form.status,
         featured: form.featured === 1,
       };
-      const data = post.id
-        ? await apiRequest<{ item: Post }>(`/api/admin/posts/${post.id}`, {
-            method: "PUT",
-            body: JSON.stringify(payload),
-          })
-        : await apiRequest<{ item: Post }>("/api/admin/posts", {
+      const isNew = !post.id;
+      const data = isNew
+        ? await apiRequest<{ item: Post }>("/api/admin/posts", {
             method: "POST",
             body: JSON.stringify(payload),
+          })
+        : await apiRequest<{ item: Post }>(`/api/admin/posts/${post.id}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
           });
-      onSaved(data.item);
+      onSaved(data.item, isNew);
       setForm(data.item);
     } catch (error) {
       onError((error as Error).message);
@@ -218,6 +400,8 @@ function PostEditor({
       setSaving(false);
     }
   }
+
+  const aiBusy = aiExcerpt || aiTags;
 
   return (
     <div className="glass rounded-[24px] p-5">
@@ -270,7 +454,25 @@ function PostEditor({
           </AdminField>
         </div>
 
-        <AdminField label="摘要" hint="显示在列表卡片上，留空会自动截取正文">
+        <AdminField
+          label="摘要"
+          hint="显示在列表卡片上，留空会自动截取正文"
+          action={
+            <button
+              type="button"
+              className="chip disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void generateExcerpt()}
+              disabled={aiExcerpt || aiBusy}
+            >
+              <Icon
+                name={aiExcerpt ? "loader" : "sparkles"}
+                size={11}
+                className={aiExcerpt ? "animate-spin" : ""}
+              />
+              {aiExcerpt ? "生成中…" : "AI 总结"}
+            </button>
+          }
+        >
           <textarea
             className="field min-h-[72px]"
             value={form.excerpt}
@@ -280,7 +482,25 @@ function PostEditor({
         </AdminField>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <AdminField label="标签" hint="用逗号分隔">
+          <AdminField
+            label="标签"
+            hint="用逗号分隔，AI 生成会与手写标签合并"
+            action={
+              <button
+                type="button"
+                className="chip disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => void generateTags()}
+                disabled={aiTags || aiBusy}
+              >
+                <Icon
+                  name={aiTags ? "loader" : "sparkles"}
+                  size={11}
+                  className={aiTags ? "animate-spin" : ""}
+                />
+                {aiTags ? "生成中…" : "AI 生成标签"}
+              </button>
+            }
+          >
             <input
               className="field"
               value={form.tags}

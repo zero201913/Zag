@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
+import { CategoryCombobox } from "./category-combobox";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
 import { apiRequest, compressImage, getAudioDuration, uploadFile } from "@/lib/admin-client";
 import { extractAudioTags, extractAudioTagsFromUrl } from "@/lib/audio-metadata";
+import { UNCATEGORIZED, categoryOptions, normalizeCategory } from "@/lib/categories";
 import type { Track } from "@/lib/types";
 import { formatDuration, formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -31,10 +33,16 @@ interface Progress {
 export function MusicManager({ initial }: { initial: Track[] }) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Track | null>(initial[0] ?? blankTrack());
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(UNCATEGORIZED);
   const { toast, show } = useToast();
-  const albums = Array.from(
-    new Set(items.map((item) => item.album.trim()).filter(Boolean)),
-  );
+  const albums = categoryOptions(items.map((item) => item.album));
+  const visibleItems = selectedAlbum
+    ? items.filter((item) => normalizeCategory(item.album) === selectedAlbum)
+    : items;
+
+  function countOf(album: string) {
+    return items.filter((item) => normalizeCategory(item.album) === album).length;
+  }
 
   function handleSaved(item: Track) {
     setItems((list) => {
@@ -45,6 +53,7 @@ export function MusicManager({ initial }: { initial: Track[] }) {
       return next.sort((a, b) => a.sort_order - b.sort_order);
     });
     setEditing(item);
+    setSelectedAlbum(normalizeCategory(item.album));
     show("音乐已保存");
   }
 
@@ -75,16 +84,55 @@ export function MusicManager({ initial }: { initial: Track[] }) {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <div className="glass rounded-[24px] p-3">
-          <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-            播放列表 · {items.length}
-          </p>
-          <div className="max-h-[70vh] space-y-1 overflow-y-auto pr-1">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+              播放列表 · {items.length}
+            </p>
+            <span className="text-[0.66rem] text-muted">
+              {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 首` : "按专辑分类查看"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 px-1 pb-2">
+            <button
+              type="button"
+              className={`chip ${selectedAlbum === null ? "chip-accent" : ""}`}
+              onClick={() => setSelectedAlbum(null)}
+            >
+              全部
+              <span className="opacity-50">{items.length}</span>
+            </button>
+            {albums.map((album) => (
+              <button
+                key={album}
+                type="button"
+                className={`chip ${selectedAlbum === album ? "chip-accent" : ""}`}
+                onClick={() => setSelectedAlbum(album)}
+              >
+                <Icon name="folder" size={11} />
+                {album}
+                <span className="opacity-50">{countOf(album)}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="max-h-[62vh] space-y-1 overflow-y-auto pr-1">
             {items.length === 0 && (
               <p className="px-3 py-10 text-center text-sm text-muted">
                 还没有音乐，点右上角添加。
               </p>
             )}
-            {items.map((track, index) => (
+            {items.length > 0 && visibleItems.length === 0 && (
+              <div className="mx-1 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] px-6 py-12 text-center">
+                <Icon name="folder" size={24} className="text-[var(--accent)]" />
+                <p className="mt-3 text-sm font-medium">「{selectedAlbum}」下还没有音乐</p>
+                <p className="mt-1 text-xs text-muted">切换专辑分类，或添加一首新的音乐。</p>
+                <button type="button" className="btn btn-ghost mt-3 !px-3 !py-1.5 !text-xs" onClick={() => setSelectedAlbum(null)}>
+                  查看全部音乐
+                </button>
+              </div>
+            )}
+            {visibleItems.map((track, index) => (
               <div
                 key={track.id}
                 className={`group flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors ${
@@ -108,8 +156,7 @@ export function MusicManager({ initial }: { initial: Track[] }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{track.title}</span>
                   <span className="block truncate text-[0.66rem] text-muted">
-                    {track.artist || "未知艺术家"}
-                    {track.album ? ` · ${track.album}` : ""}
+                    {track.artist || "未知艺术家"} · {normalizeCategory(track.album)}
                   </span>
                 </span>
                 <span className="shrink-0 font-mono text-[0.64rem] text-muted">
@@ -286,7 +333,7 @@ function TrackEditor({
       const payload = {
         title: form.title,
         artist: form.artist,
-        album: form.album,
+        album: normalizeCategory(form.album),
         r2_key: r2Key,
         cover_key: coverKey,
         duration,
@@ -372,13 +419,13 @@ function TrackEditor({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <AdminField label="专辑 / 音乐包" hint="相同专辑会归到同一组">
-            <input
-              className="field"
-              value={form.album}
-              onChange={(event) => update("album", event.target.value)}
-              placeholder="专辑名（可选）"
-              list="music-albums"
+          <AdminField label="专辑 / 音乐包" hint="相同专辑会归到同一组，默认不分类">
+            <CategoryCombobox
+              value={normalizeCategory(form.album)}
+              options={albums}
+              onChange={(value) => update("album", value)}
+              placeholder="输入或选择专辑"
+              ariaLabel="音乐专辑分类"
             />
           </AdminField>
           <AdminField label="排序" hint="数字越小越靠前">
@@ -463,11 +510,6 @@ function TrackEditor({
           支持 MP3 / WAV / M4A / OGG / FLAC 等格式，最大 60MB。选择音频后会自动读取 ID3
           标题 / 艺术家 / 专辑；带内嵌封面的 MP3 无需再手动上传封面。
         </p>
-        <datalist id="music-albums">
-          {albums.map((album) => (
-            <option key={album} value={album} />
-          ))}
-        </datalist>
       </div>
     </div>
   );

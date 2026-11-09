@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Track } from "@/lib/types";
+import { UNCATEGORIZED, normalizeCategory } from "@/lib/categories";
 import { formatDuration, mediaUrl } from "@/lib/utils";
 import { EmptyState } from "./empty-state";
 import { Icon } from "./icons";
@@ -10,8 +11,14 @@ import { useMusic } from "./music-provider";
 
 const UNKNOWN_ALBUM = "未分类专辑";
 
-function albumOf(track: Track) {
-  return track.album.trim() || UNKNOWN_ALBUM;
+function albumGroupOf(track: Track) {
+  const normalized = normalizeCategory(track.album);
+  return normalized === UNCATEGORIZED ? UNKNOWN_ALBUM : normalized;
+}
+
+function albumTextOf(track: Track) {
+  const normalized = normalizeCategory(track.album);
+  return normalized === UNCATEGORIZED ? "" : normalized;
 }
 
 export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
@@ -43,7 +50,7 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
   const albums = useMemo(() => {
     const groups = new Map<string, Track[]>();
     for (const track of library) {
-      const album = albumOf(track);
+      const album = albumGroupOf(track);
       const list = groups.get(album) ?? [];
       list.push(track);
       groups.set(album, list);
@@ -200,6 +207,7 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
         <div className="divide-y divide-[var(--border)]">
           {visibleTracks.map((track, index) => {
             const currentTrack = isCurrent(track.id);
+            const albumText = albumTextOf(track);
             return (
               <button
                 key={track.id}
@@ -228,7 +236,7 @@ export function MusicLibrary({ initialTracks }: { initialTracks: Track[] }) {
                   <span className="block truncate text-sm font-medium">{track.title}</span>
                   <span className="block truncate text-[0.7rem] text-muted">
                     {track.artist || "未知艺术家"}
-                    {track.album ? ` · ${track.album}` : ""}
+                    {albumText ? ` · ${albumText}` : ""}
                   </span>
                 </span>
                 <span className="shrink-0 font-mono text-[0.68rem] text-muted">
@@ -305,7 +313,7 @@ function NowPlaying({
           </p>
           <p className="truncate text-xs text-muted">
             {current
-              ? [current.artist || "未知艺术家", current.album].filter(Boolean).join(" · ")
+              ? [current.artist || "未知艺术家", albumTextOf(current)].filter(Boolean).join(" · ")
               : "从下面的专辑或曲目里选一首"}
           </p>
 

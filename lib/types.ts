@@ -16,6 +16,15 @@ export interface Post {
 
 export type PostSummary = Omit<Post, "content">;
 
+export interface PostPage {
+  items: Post[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  query: string;
+}
+
 export interface Project {
   id: string;
   name: string;

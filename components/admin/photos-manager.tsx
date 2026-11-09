@@ -2,9 +2,11 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
+import { CategoryCombobox } from "./category-combobox";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
 import { compressImage, getImageDimensions, apiRequest, uploadFile } from "@/lib/admin-client";
+import { UNCATEGORIZED, categoryOptions, normalizeCategory } from "@/lib/categories";
 import type { Photo } from "@/lib/types";
 import { formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -25,16 +27,25 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Photo | null>(null);
   const [uploading, setUploading] = useState<Uploading | null>(null);
-  const [uploadAlbum, setUploadAlbum] = useState("未分类");
+  const [uploadAlbum, setUploadAlbum] = useState(UNCATEGORIZED);
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(UNCATEGORIZED);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
-  const albums = Array.from(new Set(items.map((item) => item.album || "未分类")));
+  const albums = categoryOptions(items.map((item) => item.album));
+  const visibleItems = selectedAlbum
+    ? items.filter((item) => normalizeCategory(item.album) === selectedAlbum)
+    : items;
+
+  function countOf(album: string) {
+    return items.filter((item) => normalizeCategory(item.album) === album).length;
+  }
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
     if (files.length === 0) return;
 
+    const album = normalizeCategory(uploadAlbum);
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
       setUploading({ name: file.name, percent: 0, index: index + 1, total: files.length });
@@ -49,13 +60,14 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
           body: JSON.stringify({
             title: file.name.replace(/\.[^.]+$/, ""),
             description: "",
-            album: uploadAlbum.trim() || "未分类",
+            album,
             r2_key: uploaded.key,
             width: dimensions.width,
             height: dimensions.height,
           }),
         });
         setItems((list) => [data.item, ...list]);
+        setSelectedAlbum(album);
         setEditing(data.item);
       } catch (error) {
         show(`${file.name}：${(error as Error).message}`, "error");
@@ -82,7 +94,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
     <div className="pb-10">
       <AdminPageHeader
         title="照片"
-        description="上传到 R2，元信息存进 D1。支持一次选择多张。"
+        description="上传到 R2，元信息存进 D1。支持一次选择多张，并按相册分类查看。"
         action={
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -93,19 +105,15 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
               className="hidden"
               onChange={handleFiles}
             />
-            <input
-              className="field !w-32 !py-2 !text-xs"
+            <CategoryCombobox
               value={uploadAlbum}
-              onChange={(event) => setUploadAlbum(event.target.value)}
-              placeholder="相册名称"
-              list="photo-albums"
-              aria-label="上传到相册"
+              options={albums}
+              onChange={setUploadAlbum}
+              placeholder="相册（默认不分类）"
+              ariaLabel="上传到相册"
+              className="w-40"
+              inputClassName="field !py-2 !text-xs"
             />
-            <datalist id="photo-albums">
-              {albums.map((album) => (
-                <option key={album} value={album} />
-              ))}
-            </datalist>
             <button
               type="button"
               className="btn btn-primary"
@@ -139,7 +147,32 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
               照片墙 · {items.length}
             </p>
-            <span className="text-[0.66rem] text-muted">点击图片编辑</span>
+            <span className="text-[0.66rem] text-muted">
+              {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 张` : "点击图片编辑"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 px-1 pb-2">
+            <button
+              type="button"
+              className={`chip ${selectedAlbum === null ? "chip-accent" : ""}`}
+              onClick={() => setSelectedAlbum(null)}
+            >
+              全部
+              <span className="opacity-50">{items.length}</span>
+            </button>
+            {albums.map((album) => (
+              <button
+                key={album}
+                type="button"
+                className={`chip ${selectedAlbum === album ? "chip-accent" : ""}`}
+                onClick={() => setSelectedAlbum(album)}
+              >
+                <Icon name="folder" size={11} />
+                {album}
+                <span className="opacity-50">{countOf(album)}</span>
+              </button>
+            ))}
           </div>
 
           {items.length === 0 ? (
@@ -154,9 +187,18 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
               <span className="mt-3 text-sm font-medium">点击上传第一张照片</span>
               <span className="mt-1 text-xs text-muted">JPG / PNG / WebP / GIF / AVIF，最大 25MB</span>
             </button>
+          ) : visibleItems.length === 0 ? (
+            <div className="m-1 flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] px-6 py-14 text-center">
+              <Icon name="folder" size={26} className="text-[var(--accent)]" />
+              <p className="mt-3 text-sm font-medium">「{selectedAlbum}」下还没有照片</p>
+              <p className="mt-1 text-xs text-muted">切换分类，或上传一张新的照片。</p>
+              <button type="button" className="btn btn-ghost mt-3 !px-3 !py-1.5 !text-xs" onClick={() => setSelectedAlbum(null)}>
+                查看全部照片
+              </button>
+            </div>
           ) : (
-            <div className="grid max-h-[72vh] grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3 2xl:grid-cols-4">
-              {items.map((photo) => (
+            <div className="grid max-h-[64vh] grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3 2xl:grid-cols-4">
+              {visibleItems.map((photo) => (
                 <div
                   key={photo.id}
                   className={`group relative aspect-square cursor-pointer overflow-hidden rounded-xl border transition-all ${
@@ -173,6 +215,9 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-3rem)] truncate rounded-md bg-black/50 px-1.5 py-0.5 text-[0.58rem] font-medium text-white backdrop-blur">
+                    {normalizeCategory(photo.album)}
+                  </span>
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                     <p className="truncate text-[0.66rem] font-medium text-white">
                       {photo.title || "未命名"}
@@ -200,9 +245,11 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
             <PhotoEditor
               key={editing.id}
               photo={editing}
+              albums={albums}
               onSaved={(item) => {
                 setItems((list) => list.map((entry) => (entry.id === item.id ? item : entry)));
                 setEditing(item);
+                setSelectedAlbum(normalizeCategory(item.album));
                 show("照片信息已保存");
               }}
               onCancel={() => setEditing(null)}
@@ -211,7 +258,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
           ) : (
             <div className="glass flex min-h-[320px] flex-col items-center justify-center rounded-[24px] p-8 text-center">
               <Icon name="image" size={32} className="text-[var(--accent)]" />
-              <p className="mt-3 text-sm text-muted">选择一张照片，编辑标题和说明。</p>
+              <p className="mt-3 text-sm text-muted">选择一张照片，编辑标题、相册和说明。</p>
               <p className="mt-1 text-[0.7rem] text-muted">上传后的文件会保存在 R2。</p>
             </div>
           )}
@@ -225,11 +272,13 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
 
 function PhotoEditor({
   photo,
+  albums,
   onSaved,
   onCancel,
   onError,
 }: {
   photo: Photo;
+  albums: string[];
   onSaved: (item: Photo) => void;
   onCancel: () => void;
   onError: (message: string) => void;
@@ -249,7 +298,7 @@ function PhotoEditor({
         body: JSON.stringify({
           title: form.title,
           description: form.description,
-          album: form.album,
+          album: normalizeCategory(form.album),
           taken_at: form.taken_at,
           r2_key: form.r2_key,
         }),
@@ -303,13 +352,13 @@ function PhotoEditor({
           />
         </AdminField>
 
-        <AdminField label="相册" hint="相同相册名称会归到同一组">
-          <input
-            className="field"
-            value={form.album}
-            onChange={(event) => update("album", event.target.value)}
-            placeholder="未分类"
-            list="photo-albums"
+        <AdminField label="相册分类" hint="相同相册名称会归到同一组，默认不分类">
+          <CategoryCombobox
+            value={normalizeCategory(form.album)}
+            options={albums}
+            onChange={(value) => update("album", value)}
+            placeholder="输入或选择相册"
+            ariaLabel="照片相册分类"
           />
         </AdminField>
 

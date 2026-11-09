@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { PageHeading } from "@/components/page-heading";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { categoryText } from "@/lib/categories";
 import { listPhotos } from "@/lib/db";
 import type { Photo } from "@/lib/types";
 
@@ -10,10 +11,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "照片" };
 
+function albumLabel(value: string | null | undefined) {
+  return categoryText(value, "未分类");
+}
+
 function groupPhotos(photos: Photo[]) {
   const groups = new Map<string, Photo[]>();
   for (const photo of photos) {
-    const album = photo.album?.trim() || "未分类";
+    const album = albumLabel(photo.album);
     const list = groups.get(album) ?? [];
     list.push(photo);
     groups.set(album, list);
@@ -30,7 +35,8 @@ export default async function PhotosPage({
 }: {
   searchParams: Promise<{ album?: string }>;
 }) {
-  const { album: selectedAlbum } = await searchParams;
+  const { album: rawAlbum } = await searchParams;
+  const selectedAlbum = rawAlbum ? albumLabel(rawAlbum) : undefined;
   const photos = await listPhotos();
   const allGroups = groupPhotos(photos);
   const groups = selectedAlbum
