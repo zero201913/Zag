@@ -3,8 +3,8 @@ import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { PageHeading } from "@/components/page-heading";
 import { PhotoGallery } from "@/components/photo-gallery";
-import { categoryText } from "@/lib/categories";
-import { listPhotos } from "@/lib/db";
+import { categoryText, UNCATEGORIZED } from "@/lib/categories";
+import { listPhotoAlbumOrder, listPhotos } from "@/lib/db";
 import type { Photo } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ function albumLabel(value: string | null | undefined) {
   return categoryText(value, "未分类");
 }
 
-function groupPhotos(photos: Photo[]) {
+function groupPhotos(photos: Photo[], rank: Map<string, number>) {
   const groups = new Map<string, Photo[]>();
   for (const photo of photos) {
     const album = albumLabel(photo.album);
@@ -26,6 +26,11 @@ function groupPhotos(photos: Photo[]) {
   return Array.from(groups.entries()).sort(([a], [b]) => {
     if (a === "未分类") return 1;
     if (b === "未分类") return -1;
+    const ra = rank.get(a);
+    const rb = rank.get(b);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
     return a.localeCompare(b, "zh-CN");
   });
 }
@@ -37,8 +42,14 @@ export default async function PhotosPage({
 }) {
   const { album: rawAlbum } = await searchParams;
   const selectedAlbum = rawAlbum ? albumLabel(rawAlbum) : undefined;
-  const photos = await listPhotos();
-  const allGroups = groupPhotos(photos);
+  const [photos, albumRows] = await Promise.all([listPhotos(), listPhotoAlbumOrder()]);
+  const rank = new Map(
+    albumRows.map((row) => [
+      row.name === UNCATEGORIZED ? "未分类" : row.name,
+      row.sort_order,
+    ]),
+  );
+  const allGroups = groupPhotos(photos, rank);
   const groups = selectedAlbum
     ? allGroups.filter(([name]) => name === selectedAlbum)
     : allGroups;

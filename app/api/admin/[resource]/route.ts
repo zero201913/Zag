@@ -1,4 +1,5 @@
 import {
+  ensurePhotoAlbum,
   getDb,
   getPostById,
   listAdminPostsPage,
@@ -159,6 +160,7 @@ export async function POST(
     const r2Key = requiredText(body.r2_key, 500);
     if (!r2Key) return Response.json({ error: "请先上传照片文件" }, { status: 400 });
     const id = crypto.randomUUID();
+    const album = normalizeCategory(text(body.album, 80));
 
     await db
       .prepare(
@@ -169,13 +171,14 @@ export async function POST(
         id,
         text(body.title, 160),
         text(body.description, 600),
-        normalizeCategory(text(body.album, 80)),
+        album,
         r2Key,
         numberOrNull(body.width),
         numberOrNull(body.height),
         numberOrNull(body.taken_at),
       )
       .run();
+    await ensurePhotoAlbum(album);
 
     const item = await db.prepare("SELECT * FROM photos WHERE id = ?").bind(id).first();
     return Response.json({ item }, { status: 201 });

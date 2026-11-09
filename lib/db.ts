@@ -154,6 +154,55 @@ export async function listPhotos(): Promise<Photo[]> {
   return results ?? [];
 }
 
+export interface AlbumOrderRow {
+  name: string;
+  sort_order: number;
+}
+
+/** 读取后台配置的相册顺序，未出现在表里的相册由调用方按名称兜底排序。 */
+export async function listPhotoAlbumOrder(): Promise<AlbumOrderRow[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT name, sort_order FROM photo_albums ORDER BY sort_order ASC, name ASC")
+    .all<AlbumOrderRow>();
+  return results ?? [];
+}
+
+/** 新相册默认排到末尾；已存在则保持原顺序不变。 */
+export async function ensurePhotoAlbum(name: string): Promise<void> {
+  const db = await getDb();
+  await db
+    .prepare(
+      `INSERT INTO photo_albums (name, sort_order)
+       VALUES (?, COALESCE((SELECT MAX(sort_order) + 1 FROM photo_albums), 0))
+       ON CONFLICT(name) DO NOTHING`,
+    )
+    .bind(name)
+    .run();
+}
+
+/** 用完整顺序覆盖相册排序，并清掉已不在列表里的旧相册记录。 */
+export async function savePhotoAlbumOrder(names: string[]): Promise<string[]> {
+  const unique = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
+  if (unique.length === 0) return [];
+
+  const db = await getDb();
+  const statements = unique.map((name, index) =>
+    db
+      .prepare(
+        `INSERT INTO photo_albums (name, sort_order) VALUES (?, ?)
+         ON CONFLICT(name) DO UPDATE SET sort_order = excluded.sort_order`,
+      )
+      .bind(name, index),
+  );
+  const placeholders = unique.map(() => "?").join(", ");
+  statements.push(
+    db.prepare(`DELETE FROM photo_albums WHERE name NOT IN (${placeholders})`).bind(...unique),
+  );
+  await db.batch(statements);
+  return unique;
+}
+
 export async function listTracks(): Promise<Track[]> {
   const db = await getDb();
   const { results } = await db

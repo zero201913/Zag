@@ -44,6 +44,7 @@ export type IconName =
   | "chevron-left"
   | "chevron-right"
   | "chevron-down"
+  | "chevron-up"
   | "message"
   | "clock"
   | "tag"
@@ -272,6 +273,7 @@ const paths: Record<IconName, ReactNode> = {
   "chevron-left": <path d="m15 5-7 7 7 7" />,
   "chevron-right": <path d="m9 5 7 7-7 7" />,
   "chevron-down": <path d="m5 9 7 7 7-7" />,
+  "chevron-up": <path d="m5 15 7-7 7 7" />,
   message: (
     <>
       <path d="M21 11.6a8.4 8.4 0 0 1-12.2 7.5L4 21l1.9-4.6A8.4 8.4 0 1 1 21 11.6z" />

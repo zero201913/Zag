@@ -23,21 +23,80 @@ function toDateInput(unix: number | null) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function PhotosManager({ initial }: { initial: Photo[] }) {
+/** 按后台保存的顺序排序；未保存过的相册按名称排在后面，“不分类”始终最后。 */
+function mergeAlbumOrder(options: string[], saved: string[]) {
+  const rank = new Map(saved.map((name, index) => [name, index]));
+  return [...options].sort((a, b) => {
+    if (a === UNCATEGORIZED) return 1;
+    if (b === UNCATEGORIZED) return -1;
+    const ra = rank.get(a);
+    const rb = rank.get(b);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
+    return a.localeCompare(b, "zh-CN");
+  });
+}
+
+export function PhotosManager({
+  initial,
+  initialAlbumOrder,
+}: {
+  initial: Photo[];
+  initialAlbumOrder: string[];
+}) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Photo | null>(null);
   const [uploading, setUploading] = useState<Uploading | null>(null);
   const [uploadAlbum, setUploadAlbum] = useState(UNCATEGORIZED);
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(UNCATEGORIZED);
+  const [albumOrder, setAlbumOrder] = useState(initialAlbumOrder);
+  const [showOrder, setShowOrder] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
-  const albums = categoryOptions(items.map((item) => item.album));
+  const albums = mergeAlbumOrder(
+    categoryOptions(items.map((item) => item.album)),
+    albumOrder,
+  );
+  const movableAlbums = albums.filter((album) => album !== UNCATEGORIZED);
   const visibleItems = selectedAlbum
     ? items.filter((item) => normalizeCategory(item.album) === selectedAlbum)
     : items;
 
   function countOf(album: string) {
     return items.filter((item) => normalizeCategory(item.album) === album).length;
+  }
+
+  function rememberAlbum(name: string) {
+    setAlbumOrder((prev) => {
+      if (prev.includes(name)) return prev;
+      return [...prev.filter((album) => album !== UNCATEGORIZED), name, UNCATEGORIZED];
+    });
+  }
+
+  async function moveAlbum(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= movableAlbums.length) return;
+    const nextMovable = [...movableAlbums];
+    [nextMovable[index], nextMovable[target]] = [nextMovable[target], nextMovable[index]];
+    const next = [...nextMovable, UNCATEGORIZED];
+    const prev = albumOrder;
+
+    setAlbumOrder(next);
+    setSavingOrder(true);
+    try {
+      await apiRequest("/api/admin/photo-albums", {
+        method: "PUT",
+        body: JSON.stringify({ order: next }),
+      });
+      show("相册展示顺序已保存");
+    } catch (error) {
+      setAlbumOrder(prev);
+      show((error as Error).message, "error");
+    } finally {
+      setSavingOrder(false);
+    }
   }
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
@@ -69,6 +128,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
         setItems((list) => [data.item, ...list]);
         setSelectedAlbum(album);
         setEditing(data.item);
+        rememberAlbum(album);
       } catch (error) {
         show(`${file.name}：${(error as Error).message}`, "error");
       }
@@ -143,13 +203,25 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
         <div className="glass rounded-[24px] p-3">
-          <div className="flex items-center justify-between px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
               照片墙 · {items.length}
             </p>
-            <span className="text-[0.66rem] text-muted">
-              {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 张` : "点击图片编辑"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[0.66rem] text-muted">
+                {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 张` : "点击图片编辑"}
+              </span>
+              <button
+                type="button"
+                className={`chip !px-2.5 !py-1 !text-[0.66rem] ${showOrder ? "chip-accent" : ""}`}
+                onClick={() => setShowOrder((value) => !value)}
+                aria-expanded={showOrder}
+                aria-controls="photo-album-order"
+              >
+                <Icon name="menu" size={11} />
+                相册顺序
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1.5 px-1 pb-2">
@@ -174,6 +246,66 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
               </button>
             ))}
           </div>
+
+          {showOrder && (
+            <div
+              id="photo-album-order"
+              className="m-1 mb-2 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_45%,transparent)] p-2"
+            >
+              <div className="flex items-center justify-between gap-2 px-1.5 pb-1.5">
+                <p className="text-[0.68rem] text-muted">调整后立即同步到「照片」页的相册顺序</p>
+                <span className="text-[0.62rem] text-muted">{savingOrder ? "保存中…" : "上 / 下移动"}</span>
+              </div>
+
+              {movableAlbums.length === 0 ? (
+                <p className="px-2 py-3 text-center text-[0.7rem] text-muted">
+                  还没有可排序的相册，先上传照片或新建分类。
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  {movableAlbums.map((album, index) => (
+                    <div
+                      key={album}
+                      className="flex items-center gap-2 rounded-lg bg-[var(--glass-soft)] px-2 py-1.5"
+                    >
+                      <span className="w-4 shrink-0 text-center font-mono text-[0.6rem] text-muted">
+                        {index + 1}
+                      </span>
+                      <Icon name="folder" size={12} className="shrink-0 text-[var(--accent)]" />
+                      <span className="min-w-0 flex-1 truncate text-xs">{album}</span>
+                      <span className="shrink-0 text-[0.62rem] text-muted">{countOf(album)} 张</span>
+                      <button
+                        type="button"
+                        className="icon-btn !h-6 !w-6"
+                        disabled={index === 0 || savingOrder}
+                        onClick={() => void moveAlbum(index, -1)}
+                        aria-label={`${album} 上移`}
+                      >
+                        <Icon name="chevron-up" size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn !h-6 !w-6"
+                        disabled={index === movableAlbums.length - 1 || savingOrder}
+                        onClick={() => void moveAlbum(index, 1)}
+                        aria-label={`${album} 下移`}
+                      >
+                        <Icon name="chevron-down" size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 px-2 py-1.5 opacity-55">
+                    <span className="w-4 shrink-0 text-center font-mono text-[0.6rem]">—</span>
+                    <Icon name="folder" size={12} className="shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-xs">{UNCATEGORIZED}</span>
+                    <span className="shrink-0 text-[0.62rem]">
+                      {countOf(UNCATEGORIZED)} 张 · 始终最后
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {items.length === 0 ? (
             <button
@@ -250,6 +382,7 @@ export function PhotosManager({ initial }: { initial: Photo[] }) {
                 setItems((list) => list.map((entry) => (entry.id === item.id ? item : entry)));
                 setEditing(item);
                 setSelectedAlbum(normalizeCategory(item.album));
+                rememberAlbum(normalizeCategory(item.album));
                 show("照片信息已保存");
               }}
               onCancel={() => setEditing(null)}

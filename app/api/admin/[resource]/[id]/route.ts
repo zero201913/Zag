@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db";
+import { ensurePhotoAlbum, getDb } from "@/lib/db";
 import {
   getR2,
   guardAdmin,
@@ -186,6 +186,7 @@ export async function PUT(
   } else if (resource === "photos") {
     const row = existing as unknown as PhotoRow;
     const r2Key = requiredText(body.r2_key, 500) || row.r2_key;
+    const album = normalizeCategory(text(body.album, 80, row.album));
     await db
       .prepare(
         `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, width = ?, height = ?, taken_at = ? WHERE id = ?`,
@@ -193,7 +194,7 @@ export async function PUT(
       .bind(
         text(body.title, 160, row.title),
         text(body.description, 600, row.description),
-        normalizeCategory(text(body.album, 80, row.album)),
+        album,
         r2Key,
         body.width === undefined ? row.width : numberOrNull(body.width),
         body.height === undefined ? row.height : numberOrNull(body.height),
@@ -201,6 +202,7 @@ export async function PUT(
         id,
       )
       .run();
+    await ensurePhotoAlbum(album);
 
     if (r2Key !== row.r2_key) {
       try {
