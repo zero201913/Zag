@@ -2,3 +2,7 @@
 # 后台登录指令代码。生产环境请用：
 #   npx wrangler secret put ADMIN_ACCESS_CODE
 ADMIN_ACCESS_CODE=replace-with-your-own-secret
+
+# AI 摘要/标签服务。生产环境请用：
+#   npx wrangler secret put AI_API_KEY
+AI_API_KEY=replace-with-your-ai-api-key

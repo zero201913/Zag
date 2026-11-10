@@ -3,10 +3,10 @@ import { guardAdmin, parseJsonObject, text } from "@/lib/admin-api";
 
 export const dynamic = "force-dynamic";
 
-const OLLAMA_ENDPOINT = "https://ollama.com/v1/chat/completions";
-const OLLAMA_MODEL = "gpt-oss:120b";
+const AI_ENDPOINT = "https://platform.yeta.ai/v1/chat/completions";
+const AI_MODEL = "deepseek-v4.1-flash";
 
-interface OllamaResponse {
+interface AiResponse {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string };
 }
@@ -76,9 +76,9 @@ export async function POST(request: Request) {
   }
 
   const { env } = await getCloudflareContext({ async: true });
-  if (!env.OLLAMA_API_KEY) {
+  if (!env.AI_API_KEY) {
     return Response.json(
-      { error: "服务端未配置 OLLAMA_API_KEY，请在 .dev.vars 或 Worker secret 中设置。" },
+      { error: "服务端未配置 AI_API_KEY，请在 .dev.vars 或 Worker secret 中设置。" },
       { status: 500 },
     );
   }
@@ -93,14 +93,14 @@ export async function POST(request: Request) {
       : `请为下面的文章生成摘要。\n\n文章标题：${title || "未命名文章"}\n\n文章正文：\n${content.slice(0, 16000)}`;
 
   try {
-    const response = await fetch(OLLAMA_ENDPOINT, {
+    const response = await fetch(AI_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.OLLAMA_API_KEY}`,
+        Authorization: `Bearer ${env.AI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: OLLAMA_MODEL,
+        model: AI_MODEL,
         stream: false,
         temperature: task === "tags" ? 0.2 : 0.4,
         messages: [
@@ -114,19 +114,19 @@ export async function POST(request: Request) {
     if (!response.ok) {
       let detail = "";
       try {
-        const data = (await response.json()) as OllamaResponse;
+        const data = (await response.json()) as AiResponse;
         detail = data?.error?.message ?? "";
       } catch {
         /* ignore non-JSON error bodies */
       }
-      console.error("ollama request failed", response.status, detail);
+      console.error("ai request failed", response.status, detail);
       return Response.json(
         { error: `AI 服务暂时不可用（${response.status}）${detail ? `：${detail}` : ""}` },
         { status: 502 },
       );
     }
 
-    const data = (await response.json()) as OllamaResponse;
+    const data = (await response.json()) as AiResponse;
     const output = data.choices?.[0]?.message?.content?.trim() ?? "";
     if (!output) {
       return Response.json({ error: "AI 没有返回内容，请稍后再试。" }, { status: 502 });
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ excerpt });
   } catch (error) {
-    console.error("ollama request error", error);
+    console.error("ai request error", error);
     const message =
       error instanceof Error && error.name === "TimeoutError"
         ? "AI 响应超时，请稍后再试。"
