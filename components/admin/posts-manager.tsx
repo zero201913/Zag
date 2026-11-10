@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { Toast, useToast } from "./toast";
 import { UploadButton } from "./upload-button";
 import { Icon } from "../icons";
 import { apiRequest } from "@/lib/admin-client";
 import { renderMarkdown } from "@/lib/markdown";
+import { parseMarkdownImport } from "@/lib/markdown-import";
 import type { Post, PostPage } from "@/lib/types";
 import { formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -64,7 +65,9 @@ export function PostsManager({
   const [query, setQuery] = useState(initialQuery);
   const [search, setSearch] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
+  const [editorSeq, setEditorSeq] = useState(0);
   const requestSeq = useRef(0);
+  const importRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
 
   async function loadPage(nextPage: number, nextQuery = query) {
@@ -106,6 +109,57 @@ export function PostsManager({
 
   function startNew() {
     setEditing(blankPost());
+    setEditorSeq((value) => value + 1);
+  }
+
+  async function handleMarkdownFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      show("Markdown 文件不能超过 2 MB", "error");
+      return;
+    }
+
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      show("读取 Markdown 文件失败，请重试", "error");
+      return;
+    }
+
+    const parsed = parseMarkdownImport(text, file.name);
+    if (!parsed.content.trim()) {
+      show("这个文件没有可导入的正文", "error");
+      return;
+    }
+
+    if (editing && !window.confirm("导入会覆盖右侧编辑器中的当前内容，确定继续吗？")) {
+      return;
+    }
+
+    setEditing({
+      ...blankPost(),
+      title: parsed.title,
+      slug: parsed.slug,
+      excerpt: parsed.excerpt,
+      tags: parsed.tags,
+      content: parsed.content,
+    });
+    setEditorSeq((value) => value + 1);
+
+    const notes: string[] = [];
+    if (parsed.titleSource === "filename") notes.push("未找到标题，已使用文件名");
+    if (parsed.relativeImages.length) {
+      notes.push(`${parsed.relativeImages.length} 张本地图片需要重新上传`);
+    }
+    show(
+      notes.length
+        ? `已导入「${parsed.title}」，${notes.join("；")}`
+        : `已导入「${parsed.title}」`,
+    );
   }
 
   function handleSaved(item: Post, isNew: boolean) {
@@ -139,12 +193,30 @@ export function PostsManager({
     <div className="pb-10">
       <AdminPageHeader
         title="文章"
-        description="写 Markdown，保存后立即出现在文章页。"
+        description="写 Markdown 或导入 .md 文件，保存后立即出现在文章页。"
         action={
-          <button type="button" className="btn btn-primary" onClick={startNew}>
-            <Icon name="plus" size={15} />
-            新建文章
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={importRef}
+              type="file"
+              accept=".md,.markdown,text/markdown,text/plain"
+              className="hidden"
+              onChange={(event) => void handleMarkdownFile(event)}
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => importRef.current?.click()}
+              title="选择本地 Markdown 文件，自动填入标题与正文"
+            >
+              <Icon name="upload" size={15} />
+              导入 Markdown
+            </button>
+            <button type="button" className="btn btn-primary" onClick={startNew}>
+              <Icon name="plus" size={15} />
+              新建文章
+            </button>
+          </div>
         }
       />
 
@@ -265,7 +337,7 @@ export function PostsManager({
         <div className="admin-editor">
           {editing ? (
             <PostEditor
-              key={editing.id || "new"}
+              key={`${editing.id || "new"}-${editorSeq}`}
               post={editing}
               onSaved={handleSaved}
               onCancel={() => setEditing(null)}
