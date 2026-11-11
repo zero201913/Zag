@@ -1,4 +1,5 @@
 import { Marked, type Tokens } from "marked";
+import { cleanHeadingText, nextHeadingId } from "./toc";
 
 function escapeHtml(input: string) {
   return input
@@ -26,28 +27,42 @@ export function safeUrl(raw: string, allowMail = true) {
   return "#";
 }
 
-const marked = new Marked({
-  gfm: true,
-  breaks: true,
-});
+/**
+ * 每次渲染创建独立实例：标题锚点需要按当前文章重新去重，
+ * 避免并发渲染的不同文章互相污染。
+ */
+function createMarked(headingIds: Set<string>) {
+  const instance = new Marked({
+    gfm: true,
+    breaks: true,
+  });
 
-marked.use({
-  renderer: {
-    link(token: Tokens.Link) {
-      const href = escapeAttr(safeUrl(token.href));
-      const title = token.title ? ` title="${escapeAttr(token.title)}"` : "";
-      const text = this.parser.parseInline(token.tokens);
-      const external = /^https?:\/\//i.test(token.href);
-      return `<a href="${href}"${title}${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${text}</a>`;
+  instance.use({
+    renderer: {
+      heading(token: Tokens.Heading) {
+        const body = this.parser.parseInline(token.tokens);
+        if (token.depth > 4) return `<h${token.depth}>${body}</h${token.depth}>`;
+        const id = nextHeadingId(cleanHeadingText(token.text), headingIds);
+        return `<h${token.depth} id="${escapeAttr(id)}">${body}</h${token.depth}>`;
+      },
+      link(token: Tokens.Link) {
+        const href = escapeAttr(safeUrl(token.href));
+        const title = token.title ? ` title="${escapeAttr(token.title)}"` : "";
+        const text = this.parser.parseInline(token.tokens);
+        const external = /^https?:\/\//i.test(token.href);
+        return `<a href="${href}"${title}${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${text}</a>`;
+      },
+      image(token: Tokens.Image) {
+        const src = escapeAttr(safeUrl(token.href, false));
+        const alt = escapeAttr(token.text || "");
+        const title = token.title ? ` title="${escapeAttr(token.title)}"` : "";
+        return `<img src="${src}" alt="${alt}"${title} loading="lazy" decoding="async" />`;
+      },
     },
-    image(token: Tokens.Image) {
-      const src = escapeAttr(safeUrl(token.href, false));
-      const alt = escapeAttr(token.text || "");
-      const title = token.title ? ` title="${escapeAttr(token.title)}"` : "";
-      return `<img src="${src}" alt="${alt}"${title} loading="lazy" decoding="async" />`;
-    },
-  },
-});
+  });
+
+  return instance;
+}
 
 /**
  * 渲染 Markdown。先把源文本里的 HTML 全部转义，再交给 marked，
@@ -55,6 +70,6 @@ marked.use({
  */
 export function renderMarkdown(source: string) {
   if (!source) return "";
-  const html = marked.parse(escapeHtml(source), { async: false }) as string;
+  const html = createMarked(new Set<string>()).parse(escapeHtml(source), { async: false }) as string;
   return html;
 }

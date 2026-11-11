@@ -123,13 +123,34 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     setPlaying((value) => !value);
   }, [queue, tracks, current, ensureTracks]);
 
-  const next = useCallback(() => {
-    setCurrentIndex((index) => (queue.length ? (index + 1) % queue.length : 0));
-  }, [queue.length]);
+  const step = useCallback(
+    (delta: number) => {
+      const source = queue.length ? queue : tracks;
+      if (!source.length) {
+        void ensureTracks().then((list) => {
+          if (!list.length) return;
+          setQueue(list);
+          setCurrentIndex(0);
+          setPlaying(true);
+        });
+        return;
+      }
 
-  const prev = useCallback(() => {
-    setCurrentIndex((index) => (queue.length ? (index - 1 + queue.length) % queue.length : 0));
-  }, [queue.length]);
+      if (!queue.length) {
+        setQueue(source);
+        setCurrentIndex(delta > 0 ? 0 : source.length - 1);
+        setPlaying(true);
+        return;
+      }
+
+      setCurrentIndex((index) => (index + delta + source.length) % source.length);
+    },
+    [queue, tracks, ensureTracks],
+  );
+
+  const next = useCallback(() => step(1), [step]);
+
+  const prev = useCallback(() => step(-1), [step]);
 
   const seek = useCallback((seconds: number) => {
     if (audioRef.current) audioRef.current.currentTime = seconds;

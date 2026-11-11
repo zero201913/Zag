@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
+import { HomePlaylistCard } from "@/components/home-playlist-card";
 import { NoteTimeline } from "@/components/note-timeline";
-import { PlaylistWave } from "@/components/playlist-wave";
 import { PostCard } from "@/components/post-card";
 import { VisitorGreeting } from "@/components/visitor-greeting";
 import {
@@ -356,37 +356,7 @@ export default async function HomePage() {
           <VisitorGreeting email={settings.email} />
         </div>
 
-        <Link
-          href="/music"
-          className="glass card card-hover reveal relative overflow-hidden !p-0"
-          style={{ ["--i" as string]: 1 }}
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_10%_0%,var(--accent),transparent_55%),radial-gradient(100%_100%_at_100%_100%,var(--accent-2),transparent_55%)] opacity-30" />
-          <div className="relative flex h-full min-h-[230px] flex-col justify-between p-7">
-            <div className="flex items-center justify-between">
-              <span className="eyebrow">
-                <span className="eyebrow-dot" />
-                Playlist
-              </span>
-              <Icon name="music" size={18} className="text-[var(--accent)]" />
-            </div>
-            <PlaylistWave />
-            <div>
-              <p className="text-xl font-semibold tracking-[-0.03em]">
-                {tracks[0]?.title ?? "还没有上传音乐"}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {tracks[0]
-                  ? `${tracks[0].artist || "未知艺术家"} · 共 ${tracks.length} 首`
-                  : "去后台把喜欢的歌放进来"}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
-                打开播放器
-                <Icon name="arrow-right" size={14} />
-              </span>
-            </div>
-          </div>
-        </Link>
+        <HomePlaylistCard tracks={tracks} />
       </section>
 
       <p className="mt-12 text-center text-[0.7rem] tracking-[0.08em] text-muted">

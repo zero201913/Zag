@@ -772,6 +772,158 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   max-width: 980px;
 }
 
+/* ============================================================
+   Post page + table of contents
+   ============================================================ */
+.post-page-wrap {
+  max-width: 1180px;
+}
+
+/* 没有目录时保持原来的窄阅读栏 */
+.post-page-wrap-solo {
+  max-width: 980px;
+}
+
+.post-layout {
+  display: grid;
+  align-items: start;
+  gap: 2rem;
+}
+
+.post-toc {
+  display: none;
+}
+
+@media (min-width: 1080px) {
+  .post-layout.has-toc {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+
+  .post-toc {
+    position: sticky;
+    top: 104px;
+    display: block;
+    min-width: 0;
+  }
+}
+
+.post-toc-card {
+  display: flex;
+  max-height: calc(100vh - 128px);
+  flex-direction: column;
+  border-radius: 20px;
+  padding: 0.85rem 0.65rem 0.7rem;
+}
+
+.post-toc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-toc-title {
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.post-toc-sub {
+  color: var(--muted);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.post-toc-nav {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.45rem 0.1rem 0.35rem;
+  scrollbar-width: thin;
+}
+
+.post-toc-nav ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post-toc-item {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: 0.34rem 0.45rem 0.34rem 0.68rem;
+  border-left: 2px solid transparent;
+  border-radius: 0 8px 8px 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  text-decoration: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.post-toc-item.level-2 {
+  padding-left: 1.35rem;
+  font-size: 0.72rem;
+}
+
+.post-toc-item.level-3 {
+  padding-left: 2.05rem;
+  font-size: 0.7rem;
+}
+
+.post-toc-item:hover {
+  background: var(--glass-soft);
+  color: var(--text);
+}
+
+.post-toc-item.is-active {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.post-toc-progress {
+  padding: 0.55rem 0.45rem 0.1rem;
+  border-top: 1px solid var(--border);
+}
+
+.post-toc-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.38rem;
+  color: var(--muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+}
+
+.post-toc-progress-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--glass-soft);
+}
+
+.post-toc-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: width 0.15s linear;
+}
+
 .display {
   font-weight: 750;
   letter-spacing: -0.045em;
@@ -1679,6 +1831,37 @@ body.lightbox-open .vinyl-dock {
     transform 0.35s ease;
 }
 
+.vinyl-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.vinyl-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.vinyl-nav:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--glass-strong);
+  transform: translateY(-1px);
+}
+
+.vinyl-nav:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
 .vinyl-meta {
   max-width: 190px;
   border-radius: 14px;
@@ -1795,6 +1978,15 @@ body.lightbox-open .vinyl-dock {
   .vinyl-disc {
     width: 58px;
     height: 58px;
+  }
+
+  .vinyl-controls {
+    gap: 0.3rem;
+  }
+
+  .vinyl-nav {
+    width: 26px;
+    height: 26px;
   }
 }
 
@@ -2189,6 +2381,85 @@ body.lightbox-open .vinyl-dock {
   }
   to {
     transform: scaleY(var(--wave-base, 0.4));
+  }
+}
+
+/* ============================================================
+   首页 Playlist 卡片
+   ============================================================ */
+.home-playlist-card {
+  height: 100%;
+}
+
+.home-playlist-wave-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.home-playlist-wave-row .playlist-wave {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 46px;
+  margin: 0;
+}
+
+.home-playlist-album {
+  flex: 0 0 auto;
+  max-width: 9.5rem;
+  padding-left: 0.7rem;
+  border-left: 1px solid var(--border);
+  text-align: right;
+}
+
+.home-playlist-album-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.home-playlist-album-name {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-playlist-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-playlist-nav {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.home-playlist-nav .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.home-playlist-nav .icon-btn:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .home-playlist-album {
+    max-width: 6.5rem;
   }
 }
 
