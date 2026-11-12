@@ -105,7 +105,7 @@ export default async function PostPage({ params }: PageProps) {
               </div>
             )}
 
-            <div id="post-content" className="glass mt-4 rounded-[32px] p-7 sm:p-10">
+            <div id="post-content" className="glass post-body mt-4 rounded-[32px] p-7 sm:p-10">
               <Markdown content={post.content} />
             </div>
 

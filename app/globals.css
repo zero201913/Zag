@@ -784,10 +784,24 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   max-width: 980px;
 }
 
+/* 手机上给正文更多可用宽度，长代码不必过早横向滚动 */
+@media (max-width: 480px) {
+  .post-body {
+    padding: 1.15rem 1rem;
+    border-radius: 24px;
+  }
+}
+
 .post-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 2rem;
+}
+
+/* 网格子项默认 min-width:auto，长代码会把整列撑宽 */
+.post-main {
+  min-width: 0;
 }
 
 .post-toc {
@@ -1111,6 +1125,7 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
    Markdown
    ============================================================ */
 .prose-zag {
+  min-width: 0;
   color: var(--text);
   font-size: 1.02rem;
   line-height: 1.9;
@@ -1197,11 +1212,21 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   background: var(--code-bg);
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
+/* 行内代码里的长变量名/长链接允许在词内折行，避免撑破段落 */
+.prose-zag :not(pre) > code {
+  overflow-wrap: anywhere;
+}
 .prose-zag pre {
-  margin: 1.5em 0;
-  padding: 1.1rem 1.2rem;
-  border-radius: 16px;
+  max-width: 100%;
+  margin: 1.45em 0;
+  padding: clamp(0.8rem, 2.6vw, 1.1rem) clamp(0.85rem, 3.2vw, 1.2rem);
+  border-radius: clamp(12px, 2.4vw, 16px);
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
   background: color-mix(in srgb, var(--surface) 70%, #0b0d18 30%);
   border: 1px solid var(--border);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -1209,12 +1234,28 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
 .dark .prose-zag pre {
   background: rgba(3, 4, 12, 0.65);
 }
+.prose-zag pre::-webkit-scrollbar {
+  height: 6px;
+}
+.prose-zag pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.prose-zag pre::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
 .prose-zag pre code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
   padding: 0;
   background: none;
   border: none;
-  font-size: 0.84rem;
-  line-height: 1.7;
+  font-size: clamp(0.78rem, 2.6vw, 0.84rem);
+  line-height: 1.75;
+  tab-size: 2;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 .prose-zag img {
   max-width: 100%;
