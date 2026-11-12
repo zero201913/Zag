@@ -49,7 +49,9 @@ export type IconName =
   | "clock"
   | "tag"
   | "lock"
-  | "code";
+  | "code"
+  | "download"
+  | "copy";
 
 const paths: Record<IconName, ReactNode> = {
   home: (
@@ -302,6 +304,19 @@ const paths: Record<IconName, ReactNode> = {
   code: (
     <>
       <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 19.5h16" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2.2" />
+      <path d="M15 9V6.5A1.5 1.5 0 0 0 13.5 5h-7A1.5 1.5 0 0 0 5 6.5v7A1.5 1.5 0 0 0 6.5 15H9" />
     </>
   ),
 };

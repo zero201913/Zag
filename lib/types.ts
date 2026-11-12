@@ -72,6 +72,19 @@ export interface BackgroundOption {
   url: string;
 }
 
+export interface FileRecord {
+  id: string;
+  title: string;
+  description: string;
+  r2_key: string;
+  original_name: string;
+  ext: string;
+  mime: string;
+  size: number;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface Note {
   id: string;
   content: string;
@@ -102,7 +115,7 @@ export interface SiteSettings {
 }
 
 export interface SearchHit {
-  type: "post" | "project" | "bookmark" | "photo" | "track";
+  type: "post" | "project" | "bookmark" | "photo" | "track" | "file";
   id: string;
   title: string;
   subtitle: string;
@@ -116,4 +129,5 @@ export interface BlogStats {
   photos: number;
   tracks: number;
   notes: number;
+  files: number;
 }

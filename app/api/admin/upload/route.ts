@@ -1,4 +1,5 @@
 import { getR2, guardAdmin } from "@/lib/admin-api";
+import { FILE_EXTENSIONS, isAllowedFileExt, mimeForExt } from "@/lib/files";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,13 @@ const KINDS = {
     maxBytes: 60 * 1024 * 1024,
     mime: /^audio\/[a-z0-9.+-]+$/i,
     extensions: ["mp3", "wav", "m4a", "aac", "ogg", "oga", "flac", "opus", "weba"],
+  },
+  // 代码 / 文本 / HTML / Markdown 等可在线预览、可下载的资源文件
+  file: {
+    prefix: "files",
+    maxBytes: 10 * 1024 * 1024,
+    mime: /^(text\/|application\/(json|xml|javascript|x-httpd-php|x-sh|x-yaml|x-toml|sql|octet-stream))/i,
+    extensions: FILE_EXTENSIONS,
   },
 } as const;
 
@@ -67,15 +75,30 @@ export async function POST(request: Request) {
   }
 
   const extFromName = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const ext = (config.extensions as readonly string[]).includes(extFromName)
-    ? extFromName
-    : kind === "audio"
-      ? "mp3"
-      : "jpg";
 
-  if (file.type && !config.mime.test(file.type)) {
+  let ext: string;
+  if (kind === "file") {
+    if (!isAllowedFileExt(extFromName)) {
+      return Response.json(
+        { error: `不支持的文件类型：${extFromName ? `.${extFromName}` : file.name}` },
+        { status: 415 },
+      );
+    }
+    ext = extFromName;
+  } else {
+    ext = (config.extensions as readonly string[]).includes(extFromName)
+      ? extFromName
+      : kind === "audio"
+        ? "mp3"
+        : "jpg";
+  }
+
+  if (kind !== "file" && file.type && !config.mime.test(file.type)) {
     return Response.json({ error: `不支持的文件类型：${file.type}` }, { status: 415 });
   }
+
+  const contentType =
+    kind === "file" ? mimeForExt(ext) : file.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg");
 
   const now = new Date();
   const folder = `${config.prefix}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -86,7 +109,7 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     await bucket.put(key, bytes, {
       httpMetadata: {
-        contentType: file.type || (kind === "audio" ? "audio/mpeg" : "image/jpeg"),
+        contentType,
         cacheControl: "public, max-age=31536000, immutable",
       },
       customMetadata: {
@@ -107,6 +130,6 @@ export async function POST(request: Request) {
     key,
     url: `/api/media/${key.split("/").map(encodeURIComponent).join("/")}`,
     size: file.size,
-    type: file.type,
+    type: contentType,
   });
 }

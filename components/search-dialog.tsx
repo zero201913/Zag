@@ -12,12 +12,14 @@ const TYPE_META: Record<SearchHit["type"], { label: string; icon: IconName }> = 
   bookmark: { label: "收藏", icon: "bookmark" },
   photo: { label: "照片", icon: "image" },
   track: { label: "音乐", icon: "music" },
+  file: { label: "文件", icon: "code" },
 };
 
 const QUICK_LINKS = [
   { href: "/posts", label: "浏览全部文章", icon: "file" as IconName },
   { href: "/bookmarks", label: "打开收藏夹", icon: "bookmark" as IconName },
   { href: "/photos", label: "看看照片", icon: "image" as IconName },
+  { href: "/files", label: "浏览文件库", icon: "code" as IconName },
   { href: "/music", label: "播放音乐", icon: "music" as IconName },
 ];
 
@@ -113,7 +115,7 @@ export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => 
             className="search-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="按标题搜索文章、项目、收藏、照片、音乐…"
+            placeholder="按标题搜索文章、项目、收藏、照片、音乐、文件…"
             autoComplete="off"
             spellCheck={false}
           />

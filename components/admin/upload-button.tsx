@@ -12,7 +12,7 @@ export function UploadButton({
   onError,
   className = "btn",
 }: {
-  kind: "photo" | "cover" | "audio" | "avatar" | "background";
+  kind: "photo" | "cover" | "audio" | "avatar" | "background" | "file";
   label: string;
   accept?: string;
   onUploaded: (result: UploadResult) => void;
@@ -29,7 +29,7 @@ export function UploadButton({
     setProgress(0);
     try {
       const prepared =
-        kind === "audio"
+        kind === "audio" || kind === "file"
           ? file
           : await compressImage(
               file,

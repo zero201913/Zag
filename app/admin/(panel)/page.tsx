@@ -29,6 +29,7 @@ export default async function AdminDashboardPage() {
     { label: "项目", value: stats.projects, icon: "folder", href: "/admin/projects", note: "链接与作品" },
     { label: "收藏", value: stats.bookmarks, icon: "bookmark", href: "/admin/bookmarks", note: "分类收纳" },
     { label: "照片", value: stats.photos, icon: "image", href: "/admin/photos", note: "存放在 R2" },
+    { label: "文件", value: stats.files, icon: "code", href: "/admin/files", note: "代码与文档" },
     { label: "音乐", value: stats.tracks, icon: "music", href: "/admin/music", note: "存放在 R2" },
   ];
 
@@ -45,7 +46,7 @@ export default async function AdminDashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         {cards.map((card, index) => (
           <Link
             key={card.label}
@@ -130,6 +131,7 @@ export default async function AdminDashboardPage() {
               <QuickLink href="/admin/posts" icon="pencil" label="写一篇文章" />
               <QuickLink href="/admin/notes" icon="message" label="写一条说说" />
               <QuickLink href="/admin/photos" icon="image" label="上传照片" />
+              <QuickLink href="/admin/files" icon="code" label="上传文件" />
               <QuickLink href="/admin/backgrounds" icon="palette" label="管理背景" />
               <QuickLink href="/admin/music" icon="music" label="上传音乐" />
               <QuickLink href="/admin/settings" icon="settings" label="修改站点文案" />
@@ -141,7 +143,7 @@ export default async function AdminDashboardPage() {
             <div className="mt-3 space-y-2.5 text-xs">
               <StatusRow icon="database" label="D1 · SQLite" value="已连接" />
               <StatusRow icon="cloud" label="R2 · 对象存储" value="已连接" />
-              <StatusRow icon="image" label="媒体文件" value={`${photos.length} 张 · ${tracks.length} 首`} />
+              <StatusRow icon="image" label="媒体文件" value={`${photos.length} 张 · ${tracks.length} 首 · ${stats.files} 个`} />
             </div>
             <div className="divider my-3" />
             <p className="text-[0.68rem] leading-relaxed text-muted">

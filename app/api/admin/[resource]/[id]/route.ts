@@ -14,6 +14,7 @@ import {
   uniqueSlug,
 } from "@/lib/admin-api";
 import { normalizeCategory } from "@/lib/categories";
+import { extOf, isAllowedFileExt, mimeForExt } from "@/lib/files";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,17 @@ interface NoteRow {
   content: string;
   created_at: number;
   updated_at: number;
+}
+
+interface FileRow {
+  id: string;
+  title: string;
+  description: string;
+  r2_key: string;
+  original_name: string;
+  ext: string;
+  mime: string;
+  size: number;
 }
 
 async function fetchRow(resource: string, id: string) {
@@ -212,6 +224,49 @@ export async function PUT(
         console.error("failed to delete old photo object", error);
       }
     }
+  } else if (resource === "files") {
+    const row = existing as unknown as FileRow;
+    const r2Key = requiredText(body.r2_key, 500) || row.r2_key;
+    if (!r2Key.startsWith("files/")) {
+      return Response.json({ error: "文件路径不合法" }, { status: 400 });
+    }
+
+    const replacing = r2Key !== row.r2_key;
+    const originalName = replacing
+      ? requiredText(body.original_name, 200) || r2Key.split("/").pop() || row.original_name
+      : row.original_name;
+    const ext = replacing
+      ? (extOf(originalName) || extOf(r2Key) || row.ext).toLowerCase()
+      : row.ext;
+    if (!isAllowedFileExt(ext)) {
+      return Response.json({ error: "不支持的文件类型" }, { status: 415 });
+    }
+
+    await db
+      .prepare(
+        `UPDATE files SET title = ?, description = ?, r2_key = ?, original_name = ?,
+         ext = ?, mime = ?, size = ?, updated_at = unixepoch() WHERE id = ?`,
+      )
+      .bind(
+        requiredText(body.title, 200) || row.title,
+        text(body.description, 600, row.description),
+        r2Key,
+        originalName,
+        ext,
+        replacing ? text(body.mime, 120).trim() || mimeForExt(ext) : row.mime,
+        replacing ? Math.max(0, integer(body.size, row.size)) : row.size,
+        id,
+      )
+      .run();
+
+    if (replacing) {
+      try {
+        const bucket = await getR2();
+        await bucket.delete(row.r2_key);
+      } catch (error) {
+        console.error("failed to delete old file object", error);
+      }
+    }
   } else if (resource === "notes") {
     const row = existing as unknown as NoteRow;
     const content = requiredText(body.content, 2000) || row.content;
@@ -274,9 +329,9 @@ export async function DELETE(
 
   await db.prepare(`DELETE FROM ${resource} WHERE id = ?`).bind(id).run();
 
-  if (resource === "photos" || resource === "tracks") {
+  if (resource === "photos" || resource === "tracks" || resource === "files") {
     try {
-      const row = existing as unknown as PhotoRow | TrackRow;
+      const row = existing as unknown as PhotoRow | TrackRow | FileRow;
       const bucket = await getR2();
       await bucket.delete(row.r2_key);
       if (resource === "tracks" && "cover_key" in row && row.cover_key) {

@@ -4,6 +4,7 @@ import {
   getPostById,
   listAdminPostsPage,
   listBookmarks,
+  listFiles,
   listNotes,
   listPhotos,
   listProjects,
@@ -23,6 +24,7 @@ import {
   uniqueSlug,
 } from "@/lib/admin-api";
 import { normalizeCategory } from "@/lib/categories";
+import { baseNameOf, extOf, isAllowedFileExt, mimeForExt } from "@/lib/files";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,8 @@ export async function GET(
       return Response.json({ items: await listPhotos() });
     case "tracks":
       return Response.json({ items: await listTracks() });
+    case "files":
+      return Response.json({ items: await listFiles() });
     case "notes":
       return Response.json({ items: await listNotes({ limit: 500 }) });
   }
@@ -181,6 +185,53 @@ export async function POST(
     await ensurePhotoAlbum(album);
 
     const item = await db.prepare("SELECT * FROM photos WHERE id = ?").bind(id).first();
+    return Response.json({ item }, { status: 201 });
+  }
+
+  if (resource === "files") {
+    const r2Key = requiredText(body.r2_key, 500);
+    if (!r2Key) return Response.json({ error: "请先上传文件" }, { status: 400 });
+    if (!r2Key.startsWith("files/")) {
+      return Response.json({ error: "文件路径不合法" }, { status: 400 });
+    }
+
+    const originalName = requiredText(body.original_name, 200) || r2Key.split("/").pop() || "";
+    const ext = (
+      requiredText(body.ext, 16) ||
+      extOf(originalName) ||
+      extOf(r2Key)
+    ).toLowerCase();
+    if (!isAllowedFileExt(ext)) {
+      return Response.json({ error: "不支持的文件类型" }, { status: 415 });
+    }
+
+    const duplicate = await db
+      .prepare("SELECT id FROM files WHERE r2_key = ?")
+      .bind(r2Key)
+      .first<{ id: string }>();
+    if (duplicate) {
+      return Response.json({ error: "该文件已经存在" }, { status: 409 });
+    }
+
+    const id = crypto.randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO files (id, title, description, r2_key, original_name, ext, mime, size)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        id,
+        requiredText(body.title, 200) || baseNameOf(originalName) || "未命名文件",
+        text(body.description, 600),
+        r2Key,
+        originalName,
+        ext,
+        text(body.mime, 120).trim() || mimeForExt(ext),
+        Math.max(0, integer(body.size, 0)),
+      )
+      .run();
+
+    const item = await db.prepare("SELECT * FROM files WHERE id = ?").bind(id).first();
     return Response.json({ item }, { status: 201 });
   }
 

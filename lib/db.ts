@@ -1,9 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { DEFAULT_SETTINGS } from "./site";
+import { kindLabelOf } from "./files";
 import type {
   Background,
   BlogStats,
   Bookmark,
+  FileRecord,
   Note,
   Photo,
   Post,
@@ -211,6 +213,19 @@ export async function listTracks(): Promise<Track[]> {
   return results ?? [];
 }
 
+export async function listFiles(): Promise<FileRecord[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT * FROM files ORDER BY created_at DESC, id DESC")
+    .all<FileRecord>();
+  return results ?? [];
+}
+
+export async function getFileById(id: string): Promise<FileRecord | null> {
+  const db = await getDb();
+  return db.prepare("SELECT * FROM files WHERE id = ?").bind(id).first<FileRecord>();
+}
+
 export async function getSettings(): Promise<SiteSettings> {
   const db = await getDb();
   const { results } = await db
@@ -239,9 +254,10 @@ export async function getStats(): Promise<BlogStats> {
       (SELECT COUNT(*) FROM bookmarks) AS bookmarks,
       (SELECT COUNT(*) FROM photos) AS photos,
       (SELECT COUNT(*) FROM tracks) AS tracks,
+      (SELECT COUNT(*) FROM files) AS files,
       (SELECT COUNT(*) FROM notes) AS notes`)
     .first<BlogStats>();
-  return row ?? { posts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0, notes: 0 };
+  return row ?? { posts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0, notes: 0, files: 0 };
 }
 
 export async function getAdminStats(): Promise<BlogStats & { drafts: number }> {
@@ -254,9 +270,21 @@ export async function getAdminStats(): Promise<BlogStats & { drafts: number }> {
       (SELECT COUNT(*) FROM bookmarks) AS bookmarks,
       (SELECT COUNT(*) FROM photos) AS photos,
       (SELECT COUNT(*) FROM tracks) AS tracks,
+      (SELECT COUNT(*) FROM files) AS files,
       (SELECT COUNT(*) FROM notes) AS notes`)
     .first<BlogStats & { drafts: number }>();
-  return row ?? { posts: 0, drafts: 0, projects: 0, bookmarks: 0, photos: 0, tracks: 0, notes: 0 };
+  return (
+    row ?? {
+      posts: 0,
+      drafts: 0,
+      projects: 0,
+      bookmarks: 0,
+      photos: 0,
+      tracks: 0,
+      notes: 0,
+      files: 0,
+    }
+  );
 }
 
 function likeQuery(q: string) {
@@ -269,7 +297,7 @@ export async function searchAll(rawQuery: string): Promise<SearchHit[]> {
   const db = await getDb();
   const like = likeQuery(q);
 
-  const [posts, projects, bookmarks, photos, tracks] = await Promise.all([
+  const [posts, projects, bookmarks, photos, tracks, files] = await Promise.all([
     db
       .prepare(`SELECT id, slug, title, excerpt, tags FROM posts
         WHERE status = 'published' AND (title LIKE ? ESCAPE '\\' OR excerpt LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')
@@ -300,6 +328,12 @@ export async function searchAll(rawQuery: string): Promise<SearchHit[]> {
         ORDER BY sort_order ASC LIMIT 4`)
       .bind(like, like, like)
       .all<{ id: string; title: string; artist: string; album: string }>(),
+    db
+      .prepare(`SELECT id, title, description, original_name, ext FROM files
+        WHERE title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR original_name LIKE ? ESCAPE '\\'
+        ORDER BY created_at DESC LIMIT 4`)
+      .bind(like, like, like)
+      .all<{ id: string; title: string; description: string; original_name: string; ext: string }>(),
   ]);
 
   const hits: SearchHit[] = [];
@@ -346,6 +380,15 @@ export async function searchAll(rawQuery: string): Promise<SearchHit[]> {
       title: t.title,
       subtitle: [t.artist, t.album].filter(Boolean).join(" · "),
       href: `/music#track-${t.id}`,
+    });
+  }
+  for (const f of files.results ?? []) {
+    hits.push({
+      type: "file",
+      id: f.id,
+      title: f.title || f.original_name,
+      subtitle: [kindLabelOf(f.ext), f.original_name].filter(Boolean).join(" · "),
+      href: `/files/${encodeURIComponent(f.id)}`,
     });
   }
   return hits;

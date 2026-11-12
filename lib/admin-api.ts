@@ -8,6 +8,7 @@ export const ADMIN_RESOURCES = [
   "bookmarks",
   "photos",
   "tracks",
+  "files",
   "notes",
 ] as const;
 

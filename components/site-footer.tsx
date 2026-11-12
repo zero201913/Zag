@@ -74,7 +74,7 @@ export async function SiteFooter() {
                 关于这个站
               </p>
               <p className="text-sm leading-relaxed text-muted">
-                Next.js 运行在 Cloudflare Workers，文章存进 D1，照片与音乐放在 R2。
+                Next.js 运行在 Cloudflare Workers，文章存进 D1，照片、音乐与文件放在 R2。
               </p>
               <p className="mt-3 text-xs text-muted">
                 <span className="inline-flex items-center gap-1.5">

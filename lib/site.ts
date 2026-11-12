@@ -13,6 +13,7 @@ export const NAV_ITEMS = [
   { href: "/bookmarks", label: "收藏夹", en: "Bookmarks" },
   { href: "/projects", label: "项目", en: "Projects" },
   { href: "/photos", label: "照片", en: "Photos" },
+  { href: "/files", label: "文件", en: "Files" },
   { href: "/music", label: "音乐", en: "Music" },
   { href: "/about", label: "关于", en: "About" },
 ] as const;
