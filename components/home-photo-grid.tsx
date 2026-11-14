@@ -14,7 +14,7 @@ export function HomePhotoGrid({ photos }: { photos: Photo[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="home-photo-grid">
         {photos.map((photo, index) => (
           <button
             key={photo.id}

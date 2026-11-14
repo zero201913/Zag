@@ -7,6 +7,12 @@ import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
 import { compressImage, getImageDimensions, apiRequest, uploadFile } from "@/lib/admin-client";
 import { UNCATEGORIZED, categoryOptions, normalizeCategory } from "@/lib/categories";
+import {
+  HOME_PHOTOS_LIMIT_MAX,
+  HOME_PHOTOS_LIMIT_MIN,
+  type HomePhotosConfig,
+  type HomePhotosMode,
+} from "@/lib/home-photos";
 import type { Photo } from "@/lib/types";
 import { formatShortDate, mediaUrl } from "@/lib/utils";
 
@@ -41,9 +47,11 @@ function mergeAlbumOrder(options: string[], saved: string[]) {
 export function PhotosManager({
   initial,
   initialAlbumOrder,
+  initialHomePhotos,
 }: {
   initial: Photo[];
   initialAlbumOrder: string[];
+  initialHomePhotos: HomePhotosConfig;
 }) {
   const [items, setItems] = useState(initial);
   const [editing, setEditing] = useState<Photo | null>(null);
@@ -53,6 +61,10 @@ export function PhotosManager({
   const [albumOrder, setAlbumOrder] = useState(initialAlbumOrder);
   const [showOrder, setShowOrder] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [homePhotos, setHomePhotos] = useState(initialHomePhotos);
+  const [showHome, setShowHome] = useState(false);
+  const [savingHome, setSavingHome] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
   const albums = mergeAlbumOrder(
@@ -63,6 +75,10 @@ export function PhotosManager({
   const visibleItems = selectedAlbum
     ? items.filter((item) => normalizeCategory(item.album) === selectedAlbum)
     : items;
+  const selectedHomePhotos = homePhotos.ids
+    .map((id) => items.find((item) => item.id === id))
+    .filter((photo): photo is Photo => Boolean(photo));
+  const pickerCandidates = items.filter((item) => !homePhotos.ids.includes(item.id));
 
   function countOf(album: string) {
     return items.filter((item) => normalizeCategory(item.album) === album).length;
@@ -164,6 +180,72 @@ export function PhotosManager({
     }
   }
 
+  /** 首页展示配置的即时保存：先本地生效，失败再回滚 */
+  async function saveHome(next: HomePhotosConfig, message: string) {
+    const prev = homePhotos;
+    setHomePhotos(next);
+    setSavingHome(true);
+    try {
+      const data = await apiRequest<{ config: HomePhotosConfig }>("/api/admin/home-photos", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setHomePhotos(data.config);
+      show(message);
+    } catch (error) {
+      setHomePhotos(prev);
+      show((error as Error).message, "error");
+    } finally {
+      setSavingHome(false);
+    }
+  }
+
+  function homeIds() {
+    return selectedHomePhotos.map((photo) => photo.id);
+  }
+
+  function changeHomeMode(mode: HomePhotosMode) {
+    if (mode === homePhotos.mode) return;
+    void saveHome(
+      { ...homePhotos, mode },
+      mode === "manual" ? "已切换为手动挑选" : "已切换为自动最新",
+    );
+  }
+
+  function changeHomeLimit(delta: number) {
+    const limit = Math.min(
+      HOME_PHOTOS_LIMIT_MAX,
+      Math.max(HOME_PHOTOS_LIMIT_MIN, homePhotos.limit + delta),
+    );
+    if (limit === homePhotos.limit) return;
+    void saveHome({ ...homePhotos, limit }, `首页展示数量：${limit} 张`);
+  }
+
+  function fillLatestHome() {
+    const ids = items.slice(0, homePhotos.limit).map((photo) => photo.id);
+    void saveHome({ ...homePhotos, mode: "manual", ids }, `已填入最新 ${ids.length} 张`);
+  }
+
+  function addHomePhoto(id: string) {
+    if (homePhotos.ids.includes(id) || selectedHomePhotos.length >= homePhotos.limit) return;
+    void saveHome({ ...homePhotos, ids: [...homeIds(), id] }, "已加入首页展示");
+  }
+
+  function removeHomePhoto(id: string) {
+    void saveHome(
+      { ...homePhotos, ids: homeIds().filter((entry) => entry !== id) },
+      "已从首页移除",
+    );
+  }
+
+  function moveHomePhoto(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= selectedHomePhotos.length) return;
+    const ids = homeIds();
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    void saveHome({ ...homePhotos, ids }, "首页顺序已更新");
+  }
+
   return (
     <div className="pb-10">
       <AdminPageHeader
@@ -222,9 +304,24 @@ export function PhotosManager({
               照片墙 · {items.length}
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-[0.66rem] text-muted">
+              <span className="hidden text-[0.66rem] text-muted sm:inline">
                 {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 张` : "点击图片编辑"}
               </span>
+              <button
+                type="button"
+                className={`chip !px-2.5 !py-1 !text-[0.66rem] ${showHome ? "chip-accent" : ""}`}
+                onClick={() => setShowHome((value) => !value)}
+                aria-expanded={showHome}
+                aria-controls="home-photos-config"
+              >
+                <Icon name="home" size={11} />
+                首页展示
+                <span className="opacity-50">
+                  {homePhotos.mode === "manual"
+                    ? `${selectedHomePhotos.length} 张`
+                    : `${homePhotos.limit} 张`}
+                </span>
+              </button>
               <button
                 type="button"
                 className={`chip !px-2.5 !py-1 !text-[0.66rem] ${showOrder ? "chip-accent" : ""}`}
@@ -260,6 +357,206 @@ export function PhotosManager({
               </button>
             ))}
           </div>
+
+          {showHome && (
+            <div
+              id="home-photos-config"
+              className="m-1 mb-2 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_45%,transparent)] p-2.5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1.5">
+                <p className="text-[0.68rem] text-muted">
+                  首页「最近的照片」展示哪些照片、几张、什么顺序。
+                </p>
+                <span className="text-[0.62rem] text-muted">
+                  {savingHome
+                    ? "保存中…"
+                    : homePhotos.mode === "manual"
+                      ? `已选 ${selectedHomePhotos.length} / 上限 ${homePhotos.limit}`
+                      : `自动取最新 ${homePhotos.limit} 张`}
+                </span>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    className={`chip !px-2.5 !py-1 !text-[0.66rem] ${homePhotos.mode === "auto" ? "chip-accent" : ""}`}
+                    onClick={() => changeHomeMode("auto")}
+                    aria-pressed={homePhotos.mode === "auto"}
+                    disabled={savingHome}
+                  >
+                    <Icon name="refresh" size={11} />
+                    自动最新
+                  </button>
+                  <button
+                    type="button"
+                    className={`chip !px-2.5 !py-1 !text-[0.66rem] ${homePhotos.mode === "manual" ? "chip-accent" : ""}`}
+                    onClick={() => changeHomeMode("manual")}
+                    aria-pressed={homePhotos.mode === "manual"}
+                    disabled={savingHome}
+                  >
+                    <Icon name="grid" size={11} />
+                    手动挑选
+                  </button>
+                </div>
+
+                <span className="hidden h-4 w-px bg-[var(--border)] sm:block" />
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[0.66rem] text-muted">数量</span>
+                  <button
+                    type="button"
+                    className="icon-btn !h-6 !w-6"
+                    disabled={homePhotos.limit <= HOME_PHOTOS_LIMIT_MIN || savingHome}
+                    onClick={() => changeHomeLimit(-1)}
+                    aria-label="减少首页展示数量"
+                  >
+                    <Icon name="chevron-down" size={11} />
+                  </button>
+                  <span className="w-5 text-center font-mono text-xs">{homePhotos.limit}</span>
+                  <button
+                    type="button"
+                    className="icon-btn !h-6 !w-6"
+                    disabled={homePhotos.limit >= HOME_PHOTOS_LIMIT_MAX || savingHome}
+                    onClick={() => changeHomeLimit(1)}
+                    aria-label="增加首页展示数量"
+                  >
+                    <Icon name="chevron-up" size={11} />
+                  </button>
+                  <span className="text-[0.6rem] text-muted">张</span>
+                </div>
+
+                {homePhotos.mode === "manual" && (
+                  <button
+                    type="button"
+                    className="chip !px-2.5 !py-1 !text-[0.66rem]"
+                    onClick={fillLatestHome}
+                    disabled={savingHome || items.length === 0}
+                  >
+                    <Icon name="sparkles" size={11} />
+                    用最新 {homePhotos.limit} 张
+                  </button>
+                )}
+              </div>
+
+              {homePhotos.mode === "manual" ? (
+                <>
+                  {selectedHomePhotos.length === 0 ? (
+                    <p className="mt-2 px-2 py-2 text-[0.68rem] text-muted">
+                      还没有挑选照片，首页会先回退到自动展示最新 {homePhotos.limit} 张。
+                    </p>
+                  ) : (
+                    <div className="mt-2 space-y-1">
+                      {selectedHomePhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className="flex items-center gap-2 rounded-lg bg-[var(--glass-soft)] px-2 py-1.5"
+                        >
+                          <span className="w-4 shrink-0 text-center font-mono text-[0.6rem] text-muted">
+                            {index + 1}
+                          </span>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={mediaUrl(photo.r2_key)}
+                            alt=""
+                            className="h-8 w-8 shrink-0 rounded-md object-cover"
+                          />
+                          <span className="min-w-0 flex-1 truncate text-xs">
+                            {photo.title || "未命名"}
+                          </span>
+                          <button
+                            type="button"
+                            className="icon-btn !h-6 !w-6"
+                            disabled={index === 0 || savingHome}
+                            onClick={() => moveHomePhoto(index, -1)}
+                            aria-label={`${photo.title || "照片"} 上移`}
+                          >
+                            <Icon name="chevron-up" size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn !h-6 !w-6"
+                            disabled={
+                              index === selectedHomePhotos.length - 1 || savingHome
+                            }
+                            onClick={() => moveHomePhoto(index, 1)}
+                            aria-label={`${photo.title || "照片"} 下移`}
+                          >
+                            <Icon name="chevron-down" size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn !h-6 !w-6"
+                            disabled={savingHome}
+                            onClick={() => removeHomePhoto(photo.id)}
+                            aria-label={`${photo.title || "照片"} 从首页移除`}
+                          >
+                            <Icon name="close" size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
+                    <button
+                      type="button"
+                      className="chip !px-2.5 !py-1 !text-[0.66rem]"
+                      onClick={() => setShowPicker((value) => !value)}
+                      aria-expanded={showPicker}
+                      aria-controls="home-photo-picker"
+                      disabled={pickerCandidates.length === 0}
+                    >
+                      <Icon name="plus" size={11} />
+                      从照片墙添加
+                      <span className="opacity-50">{pickerCandidates.length}</span>
+                    </button>
+                    <span className="text-[0.6rem] text-muted">
+                      {selectedHomePhotos.length >= homePhotos.limit
+                        ? `已达上限 ${homePhotos.limit} 张`
+                        : "点击缩略图即可加入"}
+                    </span>
+                  </div>
+
+                  {showPicker && pickerCandidates.length > 0 && (
+                    <div
+                      id="home-photo-picker"
+                      className="mt-2 grid max-h-48 grid-cols-5 gap-1.5 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 sm:grid-cols-8"
+                    >
+                      {pickerCandidates.map((photo) => (
+                        <button
+                          key={photo.id}
+                          type="button"
+                          className="group relative aspect-square overflow-hidden rounded-lg border border-transparent transition-colors hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => addHomePhoto(photo.id)}
+                          disabled={
+                            savingHome || selectedHomePhotos.length >= homePhotos.limit
+                          }
+                          title={photo.title || "未命名"}
+                          aria-label={`把 ${photo.title || "照片"} 加到首页`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={mediaUrl(photo.r2_key)}
+                            alt=""
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-[0.52rem] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                            {photo.title || "未命名"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="mt-2 px-2 pb-1 text-[0.66rem] text-muted">
+                  按拍摄时间从新到旧自动取前 {homePhotos.limit} 张。想固定某几张，就切到「手动挑选」。
+                </p>
+              )}
+            </div>
+          )}
 
           {showOrder && (
             <div
@@ -374,6 +671,16 @@ export function PhotosManager({
                       已模糊
                     </span>
                   )}
+                  {homePhotos.mode === "manual" &&
+                    selectedHomePhotos.indexOf(photo) >= 0 && (
+                      <span
+                        className="absolute bottom-1.5 right-1.5 z-10 inline-flex items-center gap-1 rounded-md bg-[var(--accent)] px-1.5 py-0.5 text-[0.56rem] font-semibold text-white"
+                        title="正在首页展示"
+                      >
+                        <Icon name="home" size={9} />
+                        {selectedHomePhotos.indexOf(photo) + 1}
+                      </span>
+                    )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-7 opacity-0 transition-opacity group-hover:opacity-100">
                     <p className="truncate text-[0.66rem] font-medium text-white">
                       {photo.title || "未命名"}

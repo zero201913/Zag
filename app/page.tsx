@@ -13,6 +13,7 @@ import {
   listPosts,
   listTracks,
 } from "@/lib/db";
+import { parseHomePhotos, resolveHomePhotos } from "@/lib/home-photos";
 import { SITE } from "@/lib/site";
 import { excerptOf, formatDate, mediaUrl, parseTags } from "@/lib/utils";
 
@@ -72,6 +73,7 @@ export default async function HomePage() {
 
   const featured = posts[0];
   const recent = posts.slice(1, 4);
+  const homePhotos = resolveHomePhotos(parseHomePhotos(settings.home_photos), photos);
   const [titleA, titleB] = splitHeroTitle(settings.hero_title);
 
   return (
@@ -312,7 +314,7 @@ export default async function HomePage() {
       )}
 
       {/* Photos preview */}
-      {photos.length > 0 && (
+      {homePhotos.length > 0 && (
         <section className="mt-16">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
@@ -327,7 +329,7 @@ export default async function HomePage() {
               <Icon name="arrow-right" size={15} />
             </Link>
           </div>
-          <HomePhotoGrid photos={photos.slice(0, 6)} />
+          <HomePhotoGrid photos={homePhotos} />
         </section>
       )}
 
