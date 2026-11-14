@@ -1737,6 +1737,14 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   opacity: 1;
 }
 
+/* 非工作安全内容：缩略图默认打码。scale 用独立的 scale 属性放大，
+   这样 .photo-item:hover img 的 transform 仍然可以叠加，不会露出模糊边缘 */
+.thumb-mask > img {
+  filter: blur(26px) saturate(112%);
+  scale: 1.14;
+  user-select: none;
+}
+
 .lightbox {
   position: fixed;
   inset: 0;
@@ -1767,7 +1775,10 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   border-radius: 14px;
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.8);
   transform-origin: center center;
-  transition: transform 0.08s ease-out;
+  transition:
+    transform 0.08s ease-out,
+    filter 0.3s ease,
+    scale 0.3s ease;
   will-change: transform;
   -webkit-user-drag: none;
 }

@@ -55,6 +55,8 @@ export interface Photo {
   width: number | null;
   height: number | null;
   taken_at: number | null;
+  /** 1 = 缩略图默认模糊打码（非工作安全内容） */
+  blurred: number;
   created_at: number;
 }
 

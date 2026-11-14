@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
+import { HomePhotoGrid } from "@/components/home-photo-grid";
 import { HomePlaylistCard } from "@/components/home-playlist-card";
 import { NoteTimeline } from "@/components/note-timeline";
 import { PostCard } from "@/components/post-card";
@@ -326,27 +327,7 @@ export default async function HomePage() {
               <Icon name="arrow-right" size={15} />
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {photos.slice(0, 6).map((photo, index) => (
-              <Link
-                key={photo.id}
-                href="/photos"
-                className="reveal group relative aspect-square overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]"
-                style={{ ["--i" as string]: index }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={mediaUrl(photo.r2_key)}
-                  alt={photo.title || "照片"}
-                  loading="lazy"
-                  decoding="async"
-                  width={photo.width ?? undefined}
-                  height={photo.height ?? undefined}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              </Link>
-            ))}
-          </div>
+          <HomePhotoGrid photos={photos.slice(0, 6)} />
         </section>
       )}
 

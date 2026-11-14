@@ -53,6 +53,16 @@ export function integer(value: unknown, fallback = 0) {
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
 }
 
+/** 0 / 1 开关字段：兼容 boolean、数字和 "true" / "off" 这类字符串 */
+export function flag(value: unknown, fallback = 0) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  const n = Number(value);
+  if (Number.isFinite(n)) return n === 0 ? 0 : 1;
+  const raw = String(value).trim().toLowerCase();
+  return raw === "false" || raw === "off" || raw === "no" ? 0 : 1;
+}
+
 export function normalizeTags(value: unknown) {
   const raw = Array.isArray(value) ? value.join(",") : text(value, 500);
   return raw

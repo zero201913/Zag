@@ -1,6 +1,7 @@
 import { ensurePhotoAlbum, getDb } from "@/lib/db";
 import {
   getR2,
+  flag,
   guardAdmin,
   integer,
   isAdminResource,
@@ -58,6 +59,7 @@ interface PhotoRow {
   width: number | null;
   height: number | null;
   taken_at: number | null;
+  blurred: number;
 }
 
 interface TrackRow {
@@ -201,7 +203,7 @@ export async function PUT(
     const album = normalizeCategory(text(body.album, 80, row.album));
     await db
       .prepare(
-        `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, width = ?, height = ?, taken_at = ? WHERE id = ?`,
+        `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, width = ?, height = ?, taken_at = ?, blurred = ? WHERE id = ?`,
       )
       .bind(
         text(body.title, 160, row.title),
@@ -211,6 +213,7 @@ export async function PUT(
         body.width === undefined ? row.width : numberOrNull(body.width),
         body.height === undefined ? row.height : numberOrNull(body.height),
         body.taken_at === undefined ? row.taken_at : numberOrNull(body.taken_at),
+        body.blurred === undefined ? row.blurred : flag(body.blurred),
         id,
       )
       .run();

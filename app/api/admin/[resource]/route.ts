@@ -11,6 +11,7 @@ import {
   listTracks,
 } from "@/lib/db";
 import {
+  flag,
   guardAdmin,
   integer,
   isAdminResource,
@@ -168,8 +169,8 @@ export async function POST(
 
     await db
       .prepare(
-        `INSERT INTO photos (id, title, description, album, r2_key, width, height, taken_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO photos (id, title, description, album, r2_key, width, height, taken_at, blurred)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -180,6 +181,7 @@ export async function POST(
         numberOrNull(body.width),
         numberOrNull(body.height),
         numberOrNull(body.taken_at),
+        flag(body.blurred),
       )
       .run();
     await ensurePhotoAlbum(album);

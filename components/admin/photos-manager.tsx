@@ -150,6 +150,20 @@ export function PhotosManager({
     }
   }
 
+  async function handleToggleBlur(photo: Photo) {
+    try {
+      const data = await apiRequest<{ item: Photo }>(`/api/admin/photos/${photo.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ blurred: photo.blurred === 1 ? 0 : 1 }),
+      });
+      setItems((list) => list.map((entry) => (entry.id === photo.id ? data.item : entry)));
+      if (editing?.id === photo.id) setEditing(data.item);
+      show(data.item.blurred === 1 ? "已开启缩略图模糊" : "已关闭缩略图模糊");
+    } catch (error) {
+      show((error as Error).message, "error");
+    }
+  }
+
   return (
     <div className="pb-10">
       <AdminPageHeader
@@ -337,7 +351,7 @@ export function PhotosManager({
                     editing?.id === photo.id
                       ? "border-[var(--accent)] ring-2 ring-[var(--accent-soft)]"
                       : "border-[var(--border)]"
-                  }`}
+                  } ${photo.blurred === 1 ? "thumb-mask" : ""}`}
                   onClick={() => setEditing(photo)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -345,16 +359,39 @@ export function PhotosManager({
                     src={mediaUrl(photo.r2_key)}
                     alt={photo.title || "照片"}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className={`h-full w-full object-cover ${
+                      photo.blurred === 1
+                        ? ""
+                        : "transition-transform duration-500 group-hover:scale-105"
+                    }`}
                   />
-                  <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-3rem)] truncate rounded-md bg-black/50 px-1.5 py-0.5 text-[0.58rem] font-medium text-white backdrop-blur">
+                  <span className="absolute left-1.5 top-1.5 max-w-[calc(100%-4.5rem)] truncate rounded-md bg-black/50 px-1.5 py-0.5 text-[0.58rem] font-medium text-white backdrop-blur">
                     {normalizeCategory(photo.album)}
                   </span>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  {photo.blurred === 1 && (
+                    <span className="absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[0.56rem] font-medium text-white backdrop-blur">
+                      <Icon name="eye-off" size={9} />
+                      已模糊
+                    </span>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-7 opacity-0 transition-opacity group-hover:opacity-100">
                     <p className="truncate text-[0.66rem] font-medium text-white">
                       {photo.title || "未命名"}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    className="absolute right-10 top-1.5 rounded-lg bg-black/50 p-1.5 text-white opacity-100 backdrop-blur transition-opacity hover:bg-[var(--accent)] sm:opacity-0 sm:group-hover:opacity-100"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleToggleBlur(photo);
+                    }}
+                    aria-label={photo.blurred === 1 ? "关闭缩略图模糊" : "开启缩略图模糊"}
+                    aria-pressed={photo.blurred === 1}
+                    title={photo.blurred === 1 ? "关闭缩略图模糊" : "开启缩略图模糊"}
+                  >
+                    <Icon name={photo.blurred === 1 ? "eye" : "eye-off"} size={12} />
+                  </button>
                   <button
                     type="button"
                     className="absolute right-1.5 top-1.5 rounded-lg bg-black/50 p-1.5 text-white opacity-100 backdrop-blur transition-opacity hover:bg-red-500 sm:opacity-0 sm:group-hover:opacity-100"
@@ -434,6 +471,7 @@ function PhotoEditor({
           album: normalizeCategory(form.album),
           taken_at: form.taken_at,
           r2_key: form.r2_key,
+          blurred: form.blurred,
         }),
       });
       onSaved(data.item);
@@ -459,13 +497,25 @@ function PhotoEditor({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
+      <div
+        className={`relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${
+          form.blurred === 1 ? "thumb-mask" : ""
+        }`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={mediaUrl(form.r2_key)}
           alt={form.title || "照片"}
           className="max-h-[300px] w-full object-contain"
         />
+        {form.blurred === 1 && (
+          <span className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 text-white">
+            <Icon name="eye-off" size={18} className="drop-shadow" />
+            <span className="rounded-full bg-black/55 px-2 py-0.5 text-[0.6rem] font-medium backdrop-blur">
+              已开启缩略图模糊 · 访客看到的效果
+            </span>
+          </span>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between text-[0.66rem] text-muted">
@@ -519,6 +569,22 @@ function PhotoEditor({
             }
           />
         </AdminField>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--glass-soft)] px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={form.blurred === 1}
+            onChange={(event) => update("blurred", event.target.checked ? 1 : 0)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">缩略图模糊遮罩</span>
+            <span className="mt-0.5 block text-[0.68rem] leading-relaxed text-muted">
+              首页和照片墙里的缩略图会默认打码，适合非工作安全（NSFW）的照片。
+              访客点开后还要再确认一次才会看到原图。
+            </span>
+          </span>
+        </label>
       </div>
     </div>
   );
