@@ -1,5 +1,7 @@
 "use client";
 
+import { THUMB_MAX_EDGE, THUMB_QUALITY } from "./photo-thumb";
+
 export interface ApiError extends Error {
   status?: number;
 }
@@ -38,17 +40,23 @@ export interface UploadResult {
   url: string;
   size: number;
   type: string;
+  /** 照片的网格缩略图 key，未生成时为 null */
+  thumbKey?: string | null;
 }
 
 export function uploadFile(
   file: File,
   kind: "photo" | "cover" | "audio" | "avatar" | "background" | "file",
   onProgress?: (percent: number) => void,
+  extra?: Record<string, Blob>,
 ): Promise<UploadResult> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
+    for (const [name, blob] of Object.entries(extra ?? {})) {
+      form.append(name, blob, `${name}.webp`);
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/admin/upload");
@@ -134,6 +142,61 @@ export async function compressImage(file: File, maxDimension = 2400, quality = 0
     });
   } catch {
     return file;
+  }
+}
+
+/**
+ * 生成网格用的缩略图（长边 800px、WebP）。
+ * 动图、SVG、本来就小的图返回 null，页面会回退用原图。
+ */
+export async function makeThumb(
+  file: File,
+  maxEdge = THUMB_MAX_EDGE,
+  quality = THUMB_QUALITY,
+): Promise<File | null> {
+  if (
+    !file.type.startsWith("image/") ||
+    file.type === "image/gif" ||
+    file.type === "image/svg+xml"
+  ) {
+    return null;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    if (scale >= 1 && file.size <= 120 * 1024) {
+      bitmap.close();
+      return null;
+    }
+
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close();
+      return null;
+    }
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/webp", quality);
+    });
+    if (!blob || blob.size >= file.size) return null;
+
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.thumb.webp`, {
+      type: "image/webp",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return null;
   }
 }
 

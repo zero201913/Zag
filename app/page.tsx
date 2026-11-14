@@ -137,6 +137,7 @@ export default async function HomePage() {
               href={`/posts/${encodeURIComponent(featured.slug)}`}
               className="glass card card-hover reveal relative flex-1 overflow-hidden !p-0"
               style={{ ["--i" as string]: 1 }}
+              prefetch={false}
             >
               <div className="post-cover !rounded-none !border-0">
                 {featured.cover_url ? (
@@ -240,6 +241,7 @@ export default async function HomePage() {
               href={module.href}
               className="module-tile glass reveal"
               style={{ ["--i" as string]: index }}
+              prefetch={false}
             >
               <div className="flex items-start justify-between">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
@@ -273,7 +275,7 @@ export default async function HomePage() {
             </span>
             <h2 className="section-title mt-2">最近写下的</h2>
           </div>
-          <Link href="/posts" className="btn btn-ghost">
+          <Link href="/posts" className="btn btn-ghost" prefetch={false}>
             全部文章
             <Icon name="arrow-right" size={15} />
           </Link>
@@ -294,7 +296,7 @@ export default async function HomePage() {
 
       {/* Notes */}
       {notes.length > 0 && (
-        <section className="mt-16">
+        <section className="defer-paint mt-16">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <span className="eyebrow">
@@ -304,7 +306,7 @@ export default async function HomePage() {
               <h2 className="section-title mt-2">说说</h2>
               <p className="mt-1 text-xs text-muted">没有标题的小段文字，点开可以展开。</p>
             </div>
-            <Link href="/notes" className="btn btn-ghost">
+            <Link href="/notes" className="btn btn-ghost" prefetch={false}>
               全部说说
               <Icon name="arrow-right" size={15} />
             </Link>
@@ -315,7 +317,7 @@ export default async function HomePage() {
 
       {/* Photos preview */}
       {homePhotos.length > 0 && (
-        <section className="mt-16">
+        <section className="defer-paint mt-16">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <span className="eyebrow">
@@ -324,7 +326,7 @@ export default async function HomePage() {
               </span>
               <h2 className="section-title mt-2">最近的照片</h2>
             </div>
-            <Link href="/photos" className="btn btn-ghost">
+            <Link href="/photos" className="btn btn-ghost" prefetch={false}>
               全部照片
               <Icon name="arrow-right" size={15} />
             </Link>
@@ -334,7 +336,7 @@ export default async function HomePage() {
       )}
 
       {/* Music + about strip */}
-      <section className="mt-16 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className="defer-paint mt-16 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="glass reveal rounded-[28px] p-7">
           <VisitorGreeting email={settings.email} />
         </div>

@@ -5,6 +5,7 @@ import {
   isAllowedFileExt,
   mimeForExt,
 } from "@/lib/files";
+import { THUMB_MAX_BYTES, thumbKeyFor } from "@/lib/photo-thumb";
 
 export const dynamic = "force-dynamic";
 
@@ -130,9 +131,38 @@ export async function POST(request: Request) {
     );
   }
 
+  // 照片可以顺带上传一张网格缩略图（后台在浏览器里生成），和原图同目录同名
+  let thumbKey: string | null = null;
+  if (kind === "photo") {
+    const thumb = form.get("thumb");
+    if (thumb instanceof File && thumb.size > 0) {
+      if (thumb.size > THUMB_MAX_BYTES) {
+        return Response.json({ error: "缩略图文件过大" }, { status: 413 });
+      }
+      thumbKey = thumbKeyFor(key);
+      try {
+        await bucket.put(thumbKey, await thumb.arrayBuffer(), {
+          httpMetadata: {
+            contentType: "image/webp",
+            cacheControl: "public, max-age=31536000, immutable",
+          },
+          customMetadata: {
+            originalName: file.name.slice(0, 200),
+            uploadedAt: String(Math.floor(Date.now() / 1000)),
+          },
+        });
+      } catch (error) {
+        // 缩略图写失败不影响原图，页面会回退到原图
+        console.error("R2 thumb upload failed", error);
+        thumbKey = null;
+      }
+    }
+  }
+
   return Response.json({
     ok: true,
     key,
+    thumbKey,
     url: `/api/media/${key.split("/").map(encodeURIComponent).join("/")}`,
     size: file.size,
     type: contentType,

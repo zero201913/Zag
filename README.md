@@ -244,6 +244,18 @@ npx wrangler secret list
 - **默认内容 / 数据结构**：`migrations/0001_init.sql`、`migrations/0002_photo_albums.sql`、`migrations/0004_notes.sql`
 - **字体**：`app/globals.css` 的 `--font-sans`（默认系统字体，无外部字体请求）
 
+### 加载策略
+
+首屏优先，其余按视口 / 意图延后：
+
+- **图片**：`components/lazy-image.tsx` 在图片距离视口 220px 时才写 `src`（比原生 `loading="lazy"` 的 1250px 阈值更保守），首屏外的图统一低优先级 + 淡入；首屏关键图用 `priority` 立即加载。
+- **灯箱**：`photo-viewer` 通过 `next/dynamic` 按需加载，点开第一张照片时才下载查看器 JS。
+- **折叠区**：`.defer-paint`（`content-visibility: auto`）让首页视口外的说说 / 照片 / 音乐区块先跳过布局与绘制。
+- **路由预取**：页面里的链接统一 `prefetch={false}`，改由 `components/route-prefetch.tsx` 在悬停 / 聚焦 / 触摸 120ms 后 `router.prefetch()`，首屏不再一次触发十几个 Worker 渲染。
+- **照片缩略图**：上传时后台在浏览器里生成一张长边 800px 的 WebP（`lib/photo-thumb.ts`），和原图一起存进 R2（`<name>.thumb.webp`），网格 / 列表用缩略图、灯箱仍用原图。旧照片的 `thumb_key` 为空时自动回退原图，可在后台「照片 → 生成缩略图」批量补生成。
+
+`/api/media` 只做 R2 透传、不压缩，所以缩略图是照片页体积的关键；新增照片要确认 `thumb_key` 有值（后台照片墙右上角不会再出现「生成缩略图」按钮）。
+
 ### 绑定自己的域名
 
 在 `wrangler.jsonc` 里写 `routes`，然后重新 deploy 即可（Cloudflare 会自动创建代理 DNS 记录）：

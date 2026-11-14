@@ -6,6 +6,7 @@ import { AppearanceProvider } from "@/components/appearance-provider";
 import { AppearanceScript } from "@/components/appearance-script";
 import { FpsMeter } from "@/components/fps-meter";
 import { MusicProvider } from "@/components/music-provider";
+import { RoutePrefetch } from "@/components/route-prefetch";
 import { SiteChrome } from "@/components/site-chrome";
 import { SiteFooter } from "@/components/site-footer";
 import { SmoothScroll } from "@/components/smooth-scroll";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Ambient />
         <SmoothScroll />
+        <RoutePrefetch />
         <MusicProvider>
           <AppearanceProvider>
             <SiteChrome footer={<SiteFooter />}>{children}</SiteChrome>

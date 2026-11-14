@@ -79,6 +79,11 @@ export function mediaUrl(key: string | null | undefined) {
   return `/api/media/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/** 网格/列表用的图片地址：有缩略图优先缩略图，旧照片回退原图。 */
+export function photoGridUrl(photo: { thumb_key?: string | null; r2_key: string }) {
+  return mediaUrl(photo.thumb_key || photo.r2_key);
+}
+
 export function excerptOf(text: string, length = 120) {
   const plain = text
     .replace(/```[\s\S]*?```/g, " ")

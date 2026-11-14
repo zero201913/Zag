@@ -5,7 +5,7 @@ import { AdminField, AdminPageHeader } from "./admin-page-header";
 import { CategoryCombobox } from "./category-combobox";
 import { Toast, useToast } from "./toast";
 import { Icon } from "../icons";
-import { compressImage, getImageDimensions, apiRequest, uploadFile } from "@/lib/admin-client";
+import { compressImage, getImageDimensions, apiRequest, makeThumb, uploadFile } from "@/lib/admin-client";
 import { UNCATEGORIZED, categoryOptions, normalizeCategory } from "@/lib/categories";
 import {
   HOME_PHOTOS_LIMIT_MAX,
@@ -14,7 +14,7 @@ import {
   type HomePhotosMode,
 } from "@/lib/home-photos";
 import type { Photo } from "@/lib/types";
-import { formatShortDate, mediaUrl } from "@/lib/utils";
+import { formatShortDate, mediaUrl, photoGridUrl } from "@/lib/utils";
 
 interface Uploading {
   name: string;
@@ -65,6 +65,7 @@ export function PhotosManager({
   const [showHome, setShowHome] = useState(false);
   const [savingHome, setSavingHome] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [backfilling, setBackfilling] = useState<{ done: number; total: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast, show } = useToast();
   const albums = mergeAlbumOrder(
@@ -79,6 +80,10 @@ export function PhotosManager({
     .map((id) => items.find((item) => item.id === id))
     .filter((photo): photo is Photo => Boolean(photo));
   const pickerCandidates = items.filter((item) => !homePhotos.ids.includes(item.id));
+  /** 旧照片没有网格缩略图；动图不做（会丢动画），页面直接回退原图 */
+  const missingThumbs = items.filter(
+    (item) => !item.thumb_key && !/\.gif$/i.test(item.r2_key),
+  );
 
   function countOf(album: string) {
     return items.filter((item) => normalizeCategory(item.album) === album).length;
@@ -127,8 +132,13 @@ export function PhotosManager({
       try {
         const prepared = await compressImage(file, 2400);
         const dimensions = await getImageDimensions(prepared);
-        const uploaded = await uploadFile(prepared, "photo", (percent) =>
-          setUploading({ name: file.name, percent, index: index + 1, total: files.length }),
+        const thumb = await makeThumb(prepared);
+        const uploaded = await uploadFile(
+          prepared,
+          "photo",
+          (percent) =>
+            setUploading({ name: file.name, percent, index: index + 1, total: files.length }),
+          thumb ? { thumb } : undefined,
         );
         const data = await apiRequest<{ item: Photo }>("/api/admin/photos", {
           method: "POST",
@@ -137,6 +147,7 @@ export function PhotosManager({
             description: "",
             album,
             r2_key: uploaded.key,
+            thumb_key: uploaded.thumbKey ?? undefined,
             width: dimensions.width,
             height: dimensions.height,
           }),
@@ -178,6 +189,56 @@ export function PhotosManager({
     } catch (error) {
       show((error as Error).message, "error");
     }
+  }
+
+  /** 为旧照片补生成网格缩略图：取出原图 → 浏览器里缩小 → 回传 R2 */
+  async function handleBackfill() {
+    const targets = items.filter(
+      (item) => !item.thumb_key && !/\.gif$/i.test(item.r2_key),
+    );
+    if (targets.length === 0) return;
+
+    let done = 0;
+    let skipped = 0;
+    for (const photo of targets) {
+      setBackfilling({ done, total: targets.length });
+      try {
+        const response = await fetch(mediaUrl(photo.r2_key));
+        if (!response.ok) throw new Error(`读取原图失败（${response.status}）`);
+        const blob = await response.blob();
+        const thumb = await makeThumb(
+          new File([blob], photo.r2_key.split("/").pop() || "photo", { type: blob.type }),
+        );
+        if (!thumb) {
+          skipped += 1;
+          continue;
+        }
+        const form = new FormData();
+        form.append("id", photo.id);
+        form.append("thumb", thumb, "thumb.webp");
+        const result = await fetch("/api/admin/photo-thumb", { method: "POST", body: form });
+        const data = (await result.json().catch(() => null)) as
+          | { item?: Photo; error?: string }
+          | null;
+        if (!result.ok || !data?.item) {
+          throw new Error(data?.error || `失败（${result.status}）`);
+        }
+        setItems((list) =>
+          list.map((entry) => (entry.id === photo.id ? (data.item as Photo) : entry)),
+        );
+      } catch (error) {
+        show(`${photo.title || "照片"}：${(error as Error).message}`, "error");
+      } finally {
+        done += 1;
+      }
+    }
+
+    setBackfilling(null);
+    show(
+      skipped > 0
+        ? `已生成 ${targets.length - skipped} 张缩略图，${skipped} 张原图本身够小`
+        : `已生成 ${targets.length} 张缩略图`,
+    );
   }
 
   /** 首页展示配置的即时保存：先本地生效，失败再回滚 */
@@ -303,7 +364,7 @@ export function PhotosManager({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
               照片墙 · {items.length}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <span className="hidden text-[0.66rem] text-muted sm:inline">
                 {selectedAlbum ? `${selectedAlbum} · ${visibleItems.length} 张` : "点击图片编辑"}
               </span>
@@ -332,6 +393,24 @@ export function PhotosManager({
                 <Icon name="menu" size={11} />
                 相册顺序
               </button>
+              {missingThumbs.length > 0 && (
+                <button
+                  type="button"
+                  className="chip !px-2.5 !py-1 !text-[0.66rem]"
+                  onClick={handleBackfill}
+                  disabled={backfilling !== null}
+                  title="为旧照片生成网格缩略图，生成后相册页首屏流量会小很多"
+                >
+                  <Icon
+                    name={backfilling ? "loader" : "image"}
+                    size={11}
+                    className={backfilling ? "animate-spin" : ""}
+                  />
+                  {backfilling
+                    ? `缩略图 ${backfilling.done}/${backfilling.total}`
+                    : `生成缩略图 ${missingThumbs.length}`}
+                </button>
+              )}
             </div>
           </div>
 
@@ -457,7 +536,7 @@ export function PhotosManager({
                           </span>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={mediaUrl(photo.r2_key)}
+                            src={photoGridUrl(photo)}
                             alt=""
                             className="h-8 w-8 shrink-0 rounded-md object-cover"
                           />
@@ -537,7 +616,7 @@ export function PhotosManager({
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={mediaUrl(photo.r2_key)}
+                            src={photoGridUrl(photo)}
                             alt=""
                             loading="lazy"
                             className="h-full w-full object-cover"
@@ -653,7 +732,7 @@ export function PhotosManager({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={mediaUrl(photo.r2_key)}
+                    src={photoGridUrl(photo)}
                     alt={photo.title || "照片"}
                     loading="lazy"
                     className={`h-full w-full object-cover ${

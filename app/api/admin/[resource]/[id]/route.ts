@@ -56,6 +56,7 @@ interface PhotoRow {
   description: string;
   album: string;
   r2_key: string;
+  thumb_key: string | null;
   width: number | null;
   height: number | null;
   taken_at: number | null;
@@ -201,15 +202,23 @@ export async function PUT(
     const row = existing as unknown as PhotoRow;
     const r2Key = requiredText(body.r2_key, 500) || row.r2_key;
     const album = normalizeCategory(text(body.album, 80, row.album));
+    const thumbInput = requiredText(body.thumb_key, 500);
+    const thumbKey =
+      body.thumb_key === undefined
+        ? row.thumb_key
+        : thumbInput.startsWith("photos/")
+          ? thumbInput
+          : null;
     await db
       .prepare(
-        `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, width = ?, height = ?, taken_at = ?, blurred = ? WHERE id = ?`,
+        `UPDATE photos SET title = ?, description = ?, album = ?, r2_key = ?, thumb_key = ?, width = ?, height = ?, taken_at = ?, blurred = ? WHERE id = ?`,
       )
       .bind(
         text(body.title, 160, row.title),
         text(body.description, 600, row.description),
         album,
         r2Key,
+        thumbKey,
         body.width === undefined ? row.width : numberOrNull(body.width),
         body.height === undefined ? row.height : numberOrNull(body.height),
         body.taken_at === undefined ? row.taken_at : numberOrNull(body.taken_at),
@@ -223,6 +232,9 @@ export async function PUT(
       try {
         const bucket = await getR2();
         await bucket.delete(row.r2_key);
+        if (row.thumb_key && row.thumb_key !== thumbKey) {
+          await bucket.delete(row.thumb_key);
+        }
       } catch (error) {
         console.error("failed to delete old photo object", error);
       }
@@ -337,6 +349,9 @@ export async function DELETE(
       const row = existing as unknown as PhotoRow | TrackRow | FileRow;
       const bucket = await getR2();
       await bucket.delete(row.r2_key);
+      if (resource === "photos" && "thumb_key" in row && row.thumb_key) {
+        await bucket.delete(row.thumb_key);
+      }
       if (resource === "tracks" && "cover_key" in row && row.cover_key) {
         await bucket.delete(row.cover_key);
       }

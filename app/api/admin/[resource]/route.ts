@@ -166,11 +166,13 @@ export async function POST(
     if (!r2Key) return Response.json({ error: "请先上传照片文件" }, { status: 400 });
     const id = crypto.randomUUID();
     const album = normalizeCategory(text(body.album, 80));
+    const thumbKey = requiredText(body.thumb_key, 500);
+    const safeThumbKey = thumbKey.startsWith("photos/") ? thumbKey : null;
 
     await db
       .prepare(
-        `INSERT INTO photos (id, title, description, album, r2_key, width, height, taken_at, blurred)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO photos (id, title, description, album, r2_key, thumb_key, width, height, taken_at, blurred)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -178,6 +180,7 @@ export async function POST(
         text(body.description, 600),
         album,
         r2Key,
+        safeThumbKey,
         numberOrNull(body.width),
         numberOrNull(body.height),
         numberOrNull(body.taken_at),

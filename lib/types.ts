@@ -52,6 +52,8 @@ export interface Photo {
   description: string;
   album: string;
   r2_key: string;
+  /** 网格用的小图，上传时生成；为空表示旧照片，页面回退用原图 */
+  thumb_key: string | null;
   width: number | null;
   height: number | null;
   taken_at: number | null;

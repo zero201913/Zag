@@ -46,7 +46,7 @@ export async function SiteFooter() {
                 >
                   <Icon name="mail" size={17} />
                 </a>
-                <Link href="/admin" className="icon-btn" aria-label="进入后台" title="进入后台">
+                <Link href="/admin" className="icon-btn" aria-label="进入后台" title="进入后台" prefetch={false}>
                   <Icon name="lock" size={17} />
                 </Link>
               </div>
@@ -62,6 +62,7 @@ export async function SiteFooter() {
                     key={item.href}
                     href={item.href}
                     className="w-fit text-muted transition-colors hover:text-[var(--text)]"
+                    prefetch={false}
                   >
                     {item.label}
                   </Link>

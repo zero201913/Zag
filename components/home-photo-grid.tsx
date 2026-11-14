@@ -1,10 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Icon } from "./icons";
-import { PhotoViewer } from "./photo-viewer";
+import { LazyImage } from "./lazy-image";
 import type { Photo } from "@/lib/types";
-import { mediaUrl } from "@/lib/utils";
+import { photoGridUrl } from "@/lib/utils";
+
+// 灯箱只在第一次点开照片时才加载，首屏不为它付 JS 成本
+const PhotoViewer = dynamic(
+  () => import("./photo-viewer").then((module) => module.PhotoViewer),
+  { ssr: false },
+);
 
 /**
  * 首页「最近的照片」：点击任意一张直接在当前页面打开查看器，不跳转到 /photos。
@@ -27,12 +34,9 @@ export function HomePhotoGrid({ photos }: { photos: Photo[] }) {
             aria-label={`查看照片：${photo.title || "未命名"}${photo.blurred ? "（内容已模糊）" : ""}`}
             title={photo.title || "查看照片"}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={mediaUrl(photo.r2_key)}
+            <LazyImage
+              src={photoGridUrl(photo)}
               alt={photo.title || "照片"}
-              loading="lazy"
-              decoding="async"
               width={photo.width ?? undefined}
               height={photo.height ?? undefined}
               className={`h-full w-full object-cover ${
@@ -57,12 +61,14 @@ export function HomePhotoGrid({ photos }: { photos: Photo[] }) {
         ))}
       </div>
 
-      <PhotoViewer
-        photos={photos}
-        index={selected}
-        onClose={() => setSelected(null)}
-        onIndexChange={setSelected}
-      />
+      {selected !== null && (
+        <PhotoViewer
+          photos={photos}
+          index={selected}
+          onClose={() => setSelected(null)}
+          onIndexChange={setSelected}
+        />
+      )}
     </>
   );
 }

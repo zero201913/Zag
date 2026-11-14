@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PostSummary } from "@/lib/types";
 import { formatDate, mediaUrl, parseTags } from "@/lib/utils";
 import { Icon } from "./icons";
+import { LazyImage } from "./lazy-image";
 
 export function PostCard({ post, index = 0 }: { post: PostSummary; index?: number }) {
   const tags = parseTags(post.tags);
@@ -10,16 +11,11 @@ export function PostCard({ post, index = 0 }: { post: PostSummary; index?: numbe
       href={`/posts/${encodeURIComponent(post.slug)}`}
       className="glass card card-hover post-card reveal"
       style={{ ["--i" as string]: index }}
+      prefetch={false}
     >
       <div className="post-cover">
         {post.cover_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={mediaUrl(post.cover_url)}
-            alt={post.title}
-            loading="lazy"
-            decoding="async"
-          />
+          <LazyImage src={mediaUrl(post.cover_url)} alt={post.title} />
         ) : (
           <div className="cover-mono">
             <span className="cover-letter">{post.title.slice(0, 1)}</span>

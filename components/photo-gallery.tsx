@@ -1,10 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { Photo } from "@/lib/types";
-import { mediaUrl } from "@/lib/utils";
+import { photoGridUrl } from "@/lib/utils";
 import { Icon } from "./icons";
-import { PhotoViewer } from "./photo-viewer";
+import { LazyImage } from "./lazy-image";
+
+// 灯箱按需加载：没点开照片之前不下载查看器的 JS
+const PhotoViewer = dynamic(
+  () => import("./photo-viewer").then((module) => module.PhotoViewer),
+  { ssr: false },
+);
 
 export function PhotoGallery({ photos }: { photos: Photo[] }) {
   const [selected, setSelected] = useState<number | null>(null);
@@ -20,12 +27,10 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
             style={{ ["--i" as string]: index }}
             onClick={() => setSelected(index)}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={mediaUrl(photo.r2_key)}
+            <LazyImage
+              src={photoGridUrl(photo)}
               alt={photo.title || "照片"}
-              loading={index < 2 ? "eager" : "lazy"}
-              decoding="async"
+              priority={index < 2}
               width={photo.width ?? undefined}
               height={photo.height ?? undefined}
             />
@@ -51,12 +56,14 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
         ))}
       </div>
 
-      <PhotoViewer
-        photos={photos}
-        index={selected}
-        onClose={() => setSelected(null)}
-        onIndexChange={setSelected}
-      />
+      {selected !== null && (
+        <PhotoViewer
+          photos={photos}
+          index={selected}
+          onClose={() => setSelected(null)}
+          onIndexChange={setSelected}
+        />
+      )}
     </>
   );
 }

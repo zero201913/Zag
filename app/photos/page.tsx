@@ -74,6 +74,7 @@ export default async function PhotosPage({
             <Link
               href="/photos"
               className="chip"
+              prefetch={false}
               style={
                 !selectedAlbum
                   ? {
@@ -92,6 +93,7 @@ export default async function PhotosPage({
                 key={name}
                 href={`/photos?album=${encodeURIComponent(name)}`}
                 className="chip"
+                prefetch={false}
                 style={
                   selectedAlbum === name
                     ? {

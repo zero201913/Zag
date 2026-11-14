@@ -93,7 +93,7 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 className="nav-link"
-                prefetch
+                prefetch={false}
                 data-active={isActive(item.href)}
               >
                 {item.label}
@@ -134,7 +134,7 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   className={cn("nav-link !rounded-2xl !px-4 !py-3", isActive(item.href) && "!bg-[var(--accent-soft)] !text-[var(--accent)]")}
-                  prefetch
+                  prefetch={false}
                   data-active={false}
                   onClick={() => setMenuOpen(false)}
                 >

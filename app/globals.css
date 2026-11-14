@@ -1752,6 +1752,23 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
 }
 
+/* 懒加载图片：进入视口 220px 内才请求，加载完成后淡入，避免半张图闪一下 */
+.lazy-img {
+  opacity: 0;
+  background: var(--surface-2);
+  transition: opacity 0.4s ease;
+}
+
+.lazy-img.is-loaded {
+  opacity: 1;
+}
+
+/* 折叠区懒渲染：视口外的长区块先跳过布局与绘制，滚到附近再补上 */
+.defer-paint {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 620px;
+}
+
 @media (max-width: 640px) {
   .home-photo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
