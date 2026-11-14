@@ -8,6 +8,8 @@ import { Icon, type IconName } from "../icons";
 import { apiRequest, uploadFile } from "@/lib/admin-client";
 import {
   FILE_EXTENSIONS,
+  MAX_FILE_BYTES,
+  MAX_FILE_SIZE_LABEL,
   baseNameOf,
   extOf,
   fileDownloadUrl,
@@ -28,6 +30,7 @@ const KIND_ICON: Record<FileKind, IconName> = {
   markdown: "file",
   code: "code",
   text: "file",
+  archive: "archive",
   other: "cloud",
 };
 
@@ -44,6 +47,7 @@ const KIND_FILTERS: Array<{ value: "all" | FileKind; label: string }> = [
   { value: "markdown", label: "Markdown" },
   { value: "html", label: "HTML" },
   { value: "text", label: "文本" },
+  { value: "archive", label: "压缩包" },
   { value: "other", label: "其他" },
 ];
 
@@ -92,8 +96,8 @@ export function FilesManager({ initial }: { initial: FileRecord[] }) {
         show(`${file.name}：不支持的文件类型`, "error");
         continue;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        show(`${file.name}：文件超过 10MB`, "error");
+      if (file.size > MAX_FILE_BYTES) {
+        show(`${file.name}：文件超过 ${MAX_FILE_SIZE_LABEL}`, "error");
         continue;
       }
 
@@ -155,7 +159,7 @@ export function FilesManager({ initial }: { initial: FileRecord[] }) {
     <div className="pb-10">
       <AdminPageHeader
         title="文件"
-        description="代码、文本、HTML、Markdown 等资源文件直接存进 R2，可在线预览、下载，也可作为文章内链。"
+        description="代码、文本、HTML、Markdown、压缩包等资源文件直接存进 R2，可在线预览或下载，也可作为文章内链。"
         action={
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -223,7 +227,7 @@ export function FilesManager({ initial }: { initial: FileRecord[] }) {
               </span>
               <span className="mt-1 text-sm font-medium">拖拽文件到这里，或点击选择</span>
               <span className="text-[0.7rem] text-muted">
-                支持代码 / HTML / Markdown / 文本等，单个最大 10MB
+                支持代码 / HTML / Markdown / 文本 / 压缩包，单个最大 {MAX_FILE_SIZE_LABEL}
               </span>
             </button>
           </div>
@@ -274,7 +278,7 @@ export function FilesManager({ initial }: { initial: FileRecord[] }) {
                 <Icon name="code" size={24} className="text-[var(--accent)]" />
                 <span className="mt-3 text-sm font-medium">还没有文件</span>
                 <span className="mt-1 text-xs text-muted">
-                  上传一个 .html、.java、.py、.txt 或 .md 试试
+                  上传一个 .html、.py、.txt、.md 或 .zip 试试
                 </span>
               </button>
             ) : visible.length === 0 ? (

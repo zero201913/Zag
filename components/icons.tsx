@@ -51,7 +51,8 @@ export type IconName =
   | "lock"
   | "code"
   | "download"
-  | "copy";
+  | "copy"
+  | "archive";
 
 const paths: Record<IconName, ReactNode> = {
   home: (
@@ -317,6 +318,13 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <rect x="9" y="9" width="11" height="11" rx="2.2" />
       <path d="M15 9V6.5A1.5 1.5 0 0 0 13.5 5h-7A1.5 1.5 0 0 0 5 6.5v7A1.5 1.5 0 0 0 6.5 15H9" />
+    </>
+  ),
+  archive: (
+    <>
+      <path d="M4 8.5h16v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" />
+      <path d="M3 4.5h18v4H3z" />
+      <path d="M10 12.5h4" />
     </>
   ),
 };

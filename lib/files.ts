@@ -1,7 +1,7 @@
 import { mediaUrl } from "./utils";
 import type { FileRecord } from "./types";
 
-export type FileKind = "html" | "markdown" | "code" | "text" | "other";
+export type FileKind = "html" | "markdown" | "code" | "text" | "archive" | "other";
 
 const HTML_EXTENSIONS = ["html", "htm", "xhtml"];
 const MARKDOWN_EXTENSIONS = ["md", "markdown", "mdx"];
@@ -28,6 +28,7 @@ const CODE_EXTENSIONS = [
   "lua", "r", "pl", "scala",
 ];
 const TEXT_EXTENSIONS = ["txt", "text", "log", "csv", "tsv", "diff", "patch"];
+const ARCHIVE_EXTENSIONS = ["zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst"];
 
 /** 后台上传允许的扩展名，同时也是 public 预览页判断能否在线查看的依据。 */
 export const FILE_EXTENSIONS = [
@@ -35,7 +36,12 @@ export const FILE_EXTENSIONS = [
   ...MARKDOWN_EXTENSIONS,
   ...CODE_EXTENSIONS,
   ...TEXT_EXTENSIONS,
+  ...ARCHIVE_EXTENSIONS,
 ];
+
+/** 文件资源单个体积上限：5MB。 */
+export const MAX_FILE_BYTES = 5 * 1024 * 1024;
+export const MAX_FILE_SIZE_LABEL = "5MB";
 
 const ALLOWED = new Set(FILE_EXTENSIONS);
 
@@ -66,6 +72,15 @@ const MIME_BY_EXT: Record<string, string> = {
   py: "text/x-python; charset=utf-8",
   php: "application/x-httpd-php; charset=utf-8",
   sql: "application/sql; charset=utf-8",
+  zip: "application/zip",
+  rar: "application/vnd.rar",
+  "7z": "application/x-7z-compressed",
+  tar: "application/x-tar",
+  gz: "application/gzip",
+  tgz: "application/gzip",
+  bz2: "application/x-bzip2",
+  xz: "application/x-xz",
+  zst: "application/zstd",
 };
 
 const LANGUAGE_BY_EXT: Record<string, string> = {
@@ -131,6 +146,15 @@ const LANGUAGE_BY_EXT: Record<string, string> = {
   tsv: "TSV",
   diff: "Diff",
   patch: "Patch",
+  zip: "ZIP",
+  rar: "RAR",
+  "7z": "7Z",
+  tar: "TAR",
+  gz: "GZ",
+  tgz: "TGZ",
+  bz2: "BZ2",
+  xz: "XZ",
+  zst: "ZST",
 };
 
 const KIND_LABEL: Record<FileKind, string> = {
@@ -138,6 +162,7 @@ const KIND_LABEL: Record<FileKind, string> = {
   markdown: "Markdown",
   code: "代码",
   text: "文本",
+  archive: "压缩包",
   other: "其他",
 };
 
@@ -171,6 +196,7 @@ export function fileKindOf(ext: string): FileKind {
   if (MARKDOWN_EXTENSIONS.includes(value)) return "markdown";
   if (CODE_EXTENSIONS.includes(value)) return "code";
   if (TEXT_EXTENSIONS.includes(value)) return "text";
+  if (ARCHIVE_EXTENSIONS.includes(value)) return "archive";
   return "other";
 }
 

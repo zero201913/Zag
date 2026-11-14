@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
     { label: "项目", value: stats.projects, icon: "folder", href: "/admin/projects", note: "链接与作品" },
     { label: "收藏", value: stats.bookmarks, icon: "bookmark", href: "/admin/bookmarks", note: "分类收纳" },
     { label: "照片", value: stats.photos, icon: "image", href: "/admin/photos", note: "存放在 R2" },
-    { label: "文件", value: stats.files, icon: "code", href: "/admin/files", note: "代码与文档" },
+    { label: "文件", value: stats.files, icon: "code", href: "/admin/files", note: "代码 · 文档 · 压缩包" },
     { label: "音乐", value: stats.tracks, icon: "music", href: "/admin/music", note: "存放在 R2" },
   ];
 

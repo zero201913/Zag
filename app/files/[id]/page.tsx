@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/copy-button";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { Markdown } from "@/components/markdown";
 import { getFileById } from "@/lib/db";
 import { readFilePreview } from "@/lib/file-preview";
@@ -14,10 +14,24 @@ import {
   filePreviewRawUrl,
   kindLabelOf,
   languageOf,
+  type FileKind,
 } from "@/lib/files";
 import { formatBytes, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const KIND_ICON: Record<FileKind, IconName> = {
+  html: "external",
+  markdown: "file",
+  code: "code",
+  text: "file",
+  archive: "archive",
+  other: "cloud",
+};
+
+function kindIcon(kind: FileKind): IconName {
+  return KIND_ICON[kind];
+}
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -38,7 +52,9 @@ export default async function FileDetailPage({ params }: PageProps) {
 
   const kind = fileKindOf(file.ext);
   const preview =
-    kind === "html" || kind === "other" ? null : await readFilePreview(file);
+    kind === "html" || kind === "archive" || kind === "other"
+      ? null
+      : await readFilePreview(file);
 
   return (
     <div className="page-wrap">
@@ -51,7 +67,7 @@ export default async function FileDetailPage({ params }: PageProps) {
         <div className="min-w-0 max-w-2xl">
           <span className="eyebrow">
             <span className="eyebrow-dot" />
-            Files · 在线预览
+            Files · {kind === "archive" || kind === "other" ? "下载" : "在线预览"}
           </span>
           <h1 className="display mt-3 text-[clamp(1.7rem,4.5vw,2.8rem)] [overflow-wrap:anywhere]">
             {file.title || file.original_name || "未命名文件"}
@@ -76,7 +92,7 @@ export default async function FileDetailPage({ params }: PageProps) {
 
       <div className="reveal mb-4 flex flex-wrap items-center gap-2">
         <span className="chip chip-accent">
-          <Icon name="code" size={12} />
+          <Icon name={kindIcon(kind)} size={12} />
           {kindLabelOf(file.ext)}
         </span>
         <span className="chip">{languageOf(file.ext)}</span>
@@ -114,6 +130,20 @@ export default async function FileDetailPage({ params }: PageProps) {
                 <Icon name="external" size={11} />
               </a>
             </div>
+          </div>
+        ) : kind === "archive" ? (
+          <div className="flex flex-col items-center justify-center px-4 py-14 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+              <Icon name="archive" size={22} />
+            </span>
+            <p className="mt-3 text-sm font-medium">压缩包需要下载后解压</p>
+            <p className="mt-1 text-xs text-muted">
+              {languageOf(file.ext)} 文件 · {formatBytes(file.size)}，浏览器无法直接展开。
+            </p>
+            <a href={fileDownloadUrl(file)} className="btn btn-primary mt-4">
+              <Icon name="download" size={15} />
+              下载压缩包
+            </a>
           </div>
         ) : kind === "other" ? (
           <div className="flex flex-col items-center justify-center px-4 py-14 text-center">

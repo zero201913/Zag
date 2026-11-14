@@ -1,5 +1,10 @@
 import { getR2, guardAdmin } from "@/lib/admin-api";
-import { FILE_EXTENSIONS, isAllowedFileExt, mimeForExt } from "@/lib/files";
+import {
+  FILE_EXTENSIONS,
+  MAX_FILE_BYTES,
+  isAllowedFileExt,
+  mimeForExt,
+} from "@/lib/files";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +39,11 @@ const KINDS = {
     mime: /^audio\/[a-z0-9.+-]+$/i,
     extensions: ["mp3", "wav", "m4a", "aac", "ogg", "oga", "flac", "opus", "weba"],
   },
-  // 代码 / 文本 / HTML / Markdown 等可在线预览、可下载的资源文件
+  // 代码 / 文本 / HTML / Markdown / 压缩包等资源文件
   file: {
     prefix: "files",
-    maxBytes: 10 * 1024 * 1024,
-    mime: /^(text\/|application\/(json|xml|javascript|x-httpd-php|x-sh|x-yaml|x-toml|sql|octet-stream))/i,
+    maxBytes: MAX_FILE_BYTES,
+    mime: /^(text\/|application\/(json|xml|javascript|x-httpd-php|x-sh|x-yaml|x-toml|sql|zip|vnd\.rar|x-7z-compressed|x-tar|gzip|x-bzip2|x-xz|zstd|octet-stream))/i,
     extensions: FILE_EXTENSIONS,
   },
 } as const;

@@ -18,13 +18,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "文件" };
 
-const ORDER: FileKind[] = ["code", "markdown", "html", "text", "other"];
+const ORDER: FileKind[] = ["code", "markdown", "html", "text", "archive", "other"];
 
 const KIND_META: Record<FileKind, { icon: IconName; title: string; note: string }> = {
   code: { icon: "code", title: "代码", note: "可以直接读的实现与脚本" },
   markdown: { icon: "file", title: "Markdown", note: "渲染后的文档" },
   html: { icon: "external", title: "HTML 页面", note: "沙箱里预览，脚本不执行" },
   text: { icon: "file", title: "文本", note: "日志、数据与纯文本" },
+  archive: { icon: "archive", title: "压缩包", note: "下载后解压查看" },
   other: { icon: "cloud", title: "其他", note: "其他可下载的资源" },
 };
 
@@ -48,7 +49,7 @@ export default async function FilesPage() {
       <PageHeading
         eyebrow="Files · 文件"
         title="可以带走的资源"
-        description="文章里引用的代码、文档和页面都放在这里。在线预览，或者直接下载原文件。"
+        description="文章里引用的代码、文档、页面和压缩包都放在这里。在线预览，或者直接下载原文件。"
         right={
           <span className="chip">
             <Icon name="code" size={13} />
