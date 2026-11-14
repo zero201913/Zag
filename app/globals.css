@@ -1769,6 +1769,13 @@ nav[aria-label="移动导航"] .link-pending.is-pending {
   contain-intrinsic-size: auto 620px;
 }
 
+/* 站点主区域保底一屏（减去页头高度 77px）：SSR 流式输出时页脚先到、页面内容后到，
+   页脚会从视口底部被推走，产生 CLS。垫高一屏后页脚一开始就在折叠线以下；
+   正常页面本来就比一屏高，不会多出空白。 */
+.site-main {
+  min-height: calc(100vh - 4rem);
+}
+
 @media (max-width: 640px) {
   .home-photo-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

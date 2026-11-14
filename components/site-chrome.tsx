@@ -25,7 +25,9 @@ export function SiteChrome({
   return (
     <>
       <SiteHeader />
-      <main className="relative z-10">{children}</main>
+      {/* site-main 保底一屏高：页面内容流式补齐前，页脚始终在折叠线以下，
+          避免页脚被替换/顶走时产生 CLS（冷首次访问最明显）。 */}
+      <main className="site-main relative z-10">{children}</main>
       {footer}
     </>
   );
